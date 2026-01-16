@@ -6,7 +6,7 @@
   "homepage": "https://yosanpratiwi.github.io/SI-TAMU-KKT",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {

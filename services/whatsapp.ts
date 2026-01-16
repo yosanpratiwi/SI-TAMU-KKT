@@ -1,7 +1,7 @@
 const WHATSAPP_API_TOKEN = 'HUd8BtzQ8ZpBYnZKeNSC'; 
 
 export const sendWAAuto = async (phone: string, message: string) => {
-  if (!WHATSAPP_API_TOKEN || WHATSAPP_API_TOKEN === 'YHUd8BtzQ8ZpBYnZKeNSC') {
+  if (!WHATSAPP_API_TOKEN || WHATSAPP_API_TOKEN === 'HUd8BtzQ8ZpBYnZKeNSC') {
     return { success: false, message: "API Token belum dikonfigurasi" };
   }
 

@@ -1,7 +1,7 @@
 const WHATSAPP_API_TOKEN = 'HUd8BtzQ8ZpBYnZKeNSC'; 
 
 export const sendWAAuto = async (phone: string, message: string) => {
-  if (!WHATSAPP_API_TOKEN || WHATSAPP_API_TOKEN === 'HUd8BtzQ8ZpBYnZKeNSC') {
+  if (!WHATSAPP_API_TOKEN || WHATSAPP_API_TOKEN === 'YHUd8BtzQ8ZpBYnZKeNSC') {
     return { success: false, message: "API Token belum dikonfigurasi" };
   }
 
@@ -35,8 +35,9 @@ export const getManualWALink = (phone: string, message: string) => {
   return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 };
 
-// Membuat template pesan WhatsApp profesional dengan link approval
-
+/**
+ * Membuat template pesan WhatsApp profesional dengan link approval
+ */
 export const generateGuestMessage = (guest: {
   id: string,
   namaLengkap: string, 
@@ -56,20 +57,21 @@ export const generateGuestMessage = (guest: {
   
   const groupText = guest.isGroup ? `\n👥 *Tipe:* Rombongan (${guest.memberCount} Orang)` : `\n👤 *Tipe:* Individu`;
   
-  return `*NOTIFIKASI TAMU KKT* 
+  return `*NOTIFIKASI TAMU KKT* 🏢
 -----------------------------------
 Halo Bapak/Ibu *${guest.penanggungJawab}*,
 Ada tamu di Lobby Gate 01 ingin menemui Anda:
 
-*Nama:* ${guest.namaLengkap} ${groupText}
-*Instansi:* ${guest.asalInstansi || 'Pribadi/Undangan'}
-*Keperluan:* ${guest.keperluan}
-*Jam Masuk:* ${timeStr} WITA
+🗓️ *Tanggal:* ${dateStr}
+👤 *Nama:* ${guest.namaLengkap} ${groupText}
+🏢 *Instansi:* ${guest.asalInstansi || 'Pribadi/Undangan'}
+📝 *Keperluan:* ${guest.keperluan}
+⏰ *Jam Masuk:* ${timeStr} WITA
 
 Silakan berikan instruksi (SETUJU/TOLAK) melalui link sistem di bawah ini:
 🔗 ${approvalLink}
 
-_Mohon segera memberikan konfirmasi. Terimakasih._
+_Mohon segera dikonfirmasi agar petugas Sekuriti dapat memberikan akses masuk._
 -----------------------------------
 _SI-TAMU Kaltim Kariangau Terminal_`;
 };

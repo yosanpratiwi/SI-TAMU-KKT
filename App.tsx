@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { UserRole, GuestEntry, GuestStatus, Notification, VisitType } from './types';
 import Header from './components/Header';

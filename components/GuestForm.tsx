@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { GuestStatus, UserRole, GuestEntry, VisitType } from '../types';
 import CameraCapture from './CameraCapture';

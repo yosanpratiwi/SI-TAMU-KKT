@@ -1,0 +1,7 @@
+{
+  "name": "SI-TAMU KKT",
+  "description": "Sistem Informasi Tamu Kaltim Kariangau Terminal - Sistem buku tamu digital profesional dengan integrasi WhatsApp.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

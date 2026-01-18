@@ -67,10 +67,12 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
   }, [filteredGuests]);
 
   const exportData = () => {
-    const headers = ['Tanggal Kunjungan', 'Tipe', 'Nama Tamu', 'Asal Instansi', 'Staf Dituju', 'Divisi', 'Keperluan', 'Jam Masuk', 'Jam Keluar', 'Status', 'Catatan Staf'];
+    const headers = ['Tanggal', 'Tipe', 'Individu/Grup', 'Anggota Grup', 'Nama (PJ)', 'Instansi', 'Staf Dituju', 'Divisi', 'Keperluan', 'Masuk', 'Keluar', 'Status', 'Catatan Staf'];
     const rows = filteredGuests.map(g => [
         `"${g.tanggal}"`, 
-        g.visitType, 
+        g.visitType,
+        g.isGroup ? 'ROMBONGAN' : 'INDIVIDU',
+        `"${g.groupMembers?.join('; ') || '-'}"`,
         `"${g.namaLengkap}"`, 
         `"${g.asalInstansi || 'Pribadi'}"`, 
         `"${g.tujuan}"`, 
@@ -100,9 +102,9 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
 
   const dateFilterLabels: Record<DateFilterType, string> = {
     today: 'Hari Ini',
-    '1w': '1 Minggu',
-    '1m': '1 Bulan',
-    '1y': '1 Tahun',
+    '1w': 'Minggu Ini',
+    '1m': 'Bulan Ini',
+    '1y': 'Tahun Ini',
     all: 'Semua Data'
   };
 
@@ -196,7 +198,7 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
       {/* TABLE */}
       <div className="px-4 md:px-8 pb-8">
         <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-x-auto scrollbar-hide">
-            <table className="w-full text-left border-collapse min-w-[1100px]">
+            <table className="w-full text-left border-collapse min-w-[1200px]">
                 <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100">
                         <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu & Tanggal</th>
@@ -228,7 +230,7 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
                                     </div>
                                 </td>
                                 <td className="px-6 md:px-10 py-6 md:py-8">
-                                    <div className="flex items-center gap-4 md:gap-6">
+                                    <div className="flex items-start gap-4 md:gap-6">
                                         <div 
                                             className="relative h-12 w-12 md:h-16 md:w-16 rounded-xl md:rounded-2xl bg-slate-100 border-2 border-slate-200 overflow-hidden cursor-pointer shrink-0"
                                             onClick={() => guest.fotoTamu && setSelectedImage({url: guest.fotoTamu, title: guest.namaLengkap})}
@@ -237,10 +239,23 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
                                         </div>
                                         <div className="min-w-0">
                                             <div className="font-black text-brand-navy text-sm md:text-base truncate mb-1 leading-none">{guest.namaLengkap}</div>
-                                            <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-bold text-slate-400 italic">
+                                            <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-bold text-slate-400 italic mb-2">
                                                 <span className="truncate">{guest.asalInstansi || 'Pribadi'}</span>
                                                 <span className={`uppercase whitespace-nowrap ${guest.visitType === VisitType.VENDOR ? 'text-brand-red' : 'text-brand-navy'}`}>({guest.visitType})</span>
                                             </div>
+                                            
+                                            {/* INDIKATOR ROMBONGAN */}
+                                            {guest.isGroup && (
+                                              <div className="flex flex-col gap-1.5 mt-1">
+                                                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg border border-emerald-100 w-fit">
+                                                  <Users size={12} />
+                                                  <span className="text-[9px] font-black uppercase tracking-widest">ROMBONGAN (+{guest.groupMembers.length})</span>
+                                                </div>
+                                                <div className="text-[8px] font-medium text-slate-400 italic max-w-[200px] leading-relaxed line-clamp-2">
+                                                  Anggota: {guest.groupMembers.join(', ')}
+                                                </div>
+                                              </div>
+                                            )}
                                         </div>
                                     </div>
                                 </td>

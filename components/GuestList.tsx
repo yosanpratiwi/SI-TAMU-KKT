@@ -1,8 +1,7 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { GuestEntry, GuestStatus, UserRole, VisitType } from '../types';
 import { getManualWALink, sendWAAuto } from '../services/whatsapp';
-import { Search, PlusCircle, Clock, FileSpreadsheet, X, User, Send, Users, ArrowUpRight, ArrowDownRight, HardHat, CheckCircle2, AlertCircle, Building, ChevronDown, Calendar } from 'lucide-react';
+import { Search, PlusCircle, Clock, FileSpreadsheet, X, User, Send, Users, ArrowUpRight, ArrowDownRight, HardHat, CheckCircle2, AlertCircle, Building, ChevronDown, Calendar, MessageSquare } from 'lucide-react';
 
 interface GuestListProps {
   guests: GuestEntry[];
@@ -68,10 +67,9 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
   }, [filteredGuests]);
 
   const exportData = () => {
-    // Header CSV diperjelas dengan format Tanggal di depan
     const headers = ['Tanggal Kunjungan', 'Tipe', 'Nama Tamu', 'Asal Instansi', 'Staf Dituju', 'Divisi', 'Keperluan', 'Jam Masuk', 'Jam Keluar', 'Status', 'Catatan Staf'];
     const rows = filteredGuests.map(g => [
-        `"${g.tanggal}"`, // Force string to prevent Excel date auto-format issues
+        `"${g.tanggal}"`, 
         g.visitType, 
         `"${g.namaLengkap}"`, 
         `"${g.asalInstansi || 'Pribadi'}"`, 
@@ -102,9 +100,9 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
 
   const dateFilterLabels: Record<DateFilterType, string> = {
     today: 'Hari Ini',
-    '1w': 'Minggu Ini',
-    '1m': 'Bulan Ini',
-    '1y': 'Tahun Ini',
+    '1w': '1 Minggu',
+    '1m': '1 Bulan',
+    '1y': '1 Tahun',
     all: 'Semua Data'
   };
 
@@ -198,18 +196,19 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
       {/* TABLE */}
       <div className="px-4 md:px-8 pb-8">
         <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-x-auto scrollbar-hide">
-            <table className="w-full text-left border-collapse min-w-[900px]">
+            <table className="w-full text-left border-collapse min-w-[1100px]">
                 <thead>
                     <tr className="bg-slate-50/50 border-b border-slate-100">
                         <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu & Tanggal</th>
                         <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Identitas Tamu</th>
                         <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Staf Dituju</th>
+                        <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Catatan</th>
                         <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status / Aksi</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                     {filteredGuests.length === 0 ? (
-                        <tr><td colSpan={4} className="py-24 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Data tidak ditemukan</td></tr>
+                        <tr><td colSpan={5} className="py-24 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Data tidak ditemukan</td></tr>
                     ) : (
                         filteredGuests.map((guest) => (
                             <tr key={guest.id} className="hover:bg-slate-50/30 transition-all group">
@@ -252,6 +251,20 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
                                             <Building size={10} className="inline mr-1" /> {guest.tujuan} ({guest.divisi})
                                         </div>
                                     </div>
+                                </td>
+                                <td className="px-6 md:px-10 py-6 md:py-8 min-w-[250px]">
+                                    {guest.catatan ? (
+                                        <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl animate-in fade-in slide-in-from-top-1 duration-500 max-w-xs">
+                                          <div className="text-[8px] font-[900] text-indigo-400 uppercase tracking-[0.2em] mb-1 flex items-center gap-1.5">
+                                              <MessageSquare size={10} /> Instruksi Staf
+                                          </div>
+                                          <div className="text-[10px] font-bold text-indigo-700 italic leading-relaxed">
+                                              "{guest.catatan}"
+                                          </div>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[9px] font-bold text-slate-300 uppercase italic tracking-widest">Tidak ada catatan</span>
+                                    )}
                                 </td>
                                 <td className="px-6 md:px-10 py-6 md:py-8 text-center">
                                     <div className="flex items-center justify-center gap-2">

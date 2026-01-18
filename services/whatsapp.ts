@@ -1,8 +1,8 @@
 const WHATSAPP_API_TOKEN = 'HUd8BtzQ8ZpBYnZKeNSC'; 
 
 export const sendWAAuto = async (phone: string, message: string) => {
-  if (!WHATSAPP_API_TOKEN || WHATSAPP_API_TOKEN === 'HUd8BtzQ8ZpBYnZKeNSC') {
-    return { success: false, message: "API Token belum dikonfigurasi" };
+  if (!WHATSAPP_API_TOKEN) {
+    return { success: false, message: "API Token kosong" };
   }
 
   let formattedPhone = phone.replace(/[^0-9]/g, '');
@@ -23,6 +23,7 @@ export const sendWAAuto = async (phone: string, message: string) => {
     const result = await response.json();
     return { success: result.status === true, data: result };
   } catch (error) {
+    console.error("WA API Error:", error);
     return { success: false, error };
   }
 };
@@ -36,7 +37,7 @@ export const getManualWALink = (phone: string, message: string) => {
 };
 
 /**
- * Membuat template pesan WhatsApp profesional dengan link approval
+ * Membuat template pesan WhatsApp sesuai permintaan user
  */
 export const generateGuestMessage = (guest: {
   id: string,
@@ -44,34 +45,27 @@ export const generateGuestMessage = (guest: {
   asalInstansi: string, 
   penanggungJawab: string, 
   keperluan: string,
-  isGroup: boolean,
-  memberCount: number
 }) => {
   const now = new Date();
-  const dateStr = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   
-  // Deteksi URL saat ini untuk membuat link approval dinamis
+  // Deteksi URL untuk link approval
   const baseUrl = window.location.origin + window.location.pathname;
   const approvalLink = `${baseUrl}?approval=${guest.id}`;
   
-  const groupText = guest.isGroup ? `\n👥 *Tipe:* Rombongan (${guest.memberCount} Orang)` : `\n👤 *Tipe:* Individu`;
-  
-  return `*NOTIFIKASI TAMU KKT* 🏢
------------------------------------
-Halo Bapak/Ibu *${guest.penanggungJawab}*,
-Ada tamu di Lobby Gate 01 ingin menemui Anda:
+  return `NOTIFIKASI TAMU BARU 
+SI-TAMU KKT
 
-🗓️ *Tanggal:* ${dateStr}
-👤 *Nama:* ${guest.namaLengkap} ${groupText}
-🏢 *Instansi:* ${guest.asalInstansi || 'Pribadi/Undangan'}
-📝 *Keperluan:* ${guest.keperluan}
-⏰ *Jam Masuk:* ${timeStr} WITA
+Halo Bapak/Ibu ${guest.penanggungJawab},
+Tamu Anda telah tiba di Lobby dan sedang menunggu konfirmasi:
 
-Silakan berikan instruksi (SETUJU/TOLAK) melalui link sistem di bawah ini:
-🔗 ${approvalLink}
+Nama: ${guest.namaLengkap}
+Asal: ${guest.asalInstansi || 'Pribadi'}
+Keperluan: ${guest.keperluan}
+Waktu: ${timeStr} WITA
 
-_Mohon segera dikonfirmasi agar petugas Sekuriti dapat memberikan akses masuk._
------------------------------------
-_SI-TAMU Kaltim Kariangau Terminal_`;
+Mohon kesediaannya untuk memberikan konfirmasi melalui link di bawah ini:
+${approvalLink}
+
+(Jika link tidak bisa diklik, mohon simpan nomor ini atau balas pesan ini terlebih dahulu)`;
 };

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { GuestEntry, GuestStatus, UserRole, VisitType } from '../types';
 import { getManualWALink, sendWAAuto } from '../services/whatsapp';
-import { Search, PlusCircle, Clock, FileSpreadsheet, X, User, Send, Users, ArrowUpRight, ArrowDownRight, HardHat, CheckCircle2, AlertCircle, Building, ChevronDown, Calendar, MessageSquare } from 'lucide-react';
+import { Search, PlusCircle, Clock, FileSpreadsheet, X, User, Send, Users, ArrowUpRight, ArrowDownRight, HardHat, CheckCircle2, AlertCircle, Building, ChevronDown, Calendar, MessageSquare, FileText, ExternalLink, Printer, Download, QrCode, FileDown } from 'lucide-react';
 
 interface GuestListProps {
   guests: GuestEntry[];
@@ -16,7 +16,9 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState<DateFilterType>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{url: string, title: string} | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{url: string, title: string, isPdf?: boolean} | null>(null);
+  const [printGuest, setPrintGuest] = useState<GuestEntry | null>(null);
+  const [isPrintingFullLog, setIsPrintingFullLog] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,7 +69,12 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
   }, [filteredGuests]);
 
   const exportData = () => {
-    const headers = ['Tanggal', 'Tipe', 'Individu/Grup', 'Anggota Grup', 'Nama (PJ)', 'Instansi', 'Staf Dituju', 'Divisi', 'Keperluan', 'Masuk', 'Keluar', 'Status', 'Catatan Staf'];
+    const headers = [
+      'Tanggal', 'Tipe', 'Individu/Grup', 'Anggota Grup', 'Nama (PJ)', 'Instansi', 
+      'Staf Dituju', 'Divisi', 'Keperluan', 'Masuk', 'Keluar', 'Status', 
+      'Catatan Staf', 'Data_Foto_Wajah', 'Data_Foto_KTP', 'Data_Dokumen_K3'
+    ];
+    
     const rows = filteredGuests.map(g => [
         `"${g.tanggal}"`, 
         g.visitType,
@@ -81,8 +88,12 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
         g.jamMasuk, 
         g.jamKeluar || '-',
         g.status,
-        `"${g.catatan || ''}"`
+        `"${g.catatan || ''}"`,
+        `"${g.fotoTamu || ''}"`,
+        `"${g.fotoKTP || ''}"`,
+        `"${g.k3Pdf || ''}"`
     ]);
+
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -92,12 +103,35 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
     link.click();
   };
 
+  const handlePrintPass = (guest: GuestEntry) => {
+    setIsPrintingFullLog(false);
+    setPrintGuest(guest);
+    setTimeout(() => {
+      window.print();
+    }, 500);
+  };
+
+  const handlePrintFullLog = () => {
+    setPrintGuest(null);
+    setIsPrintingFullLog(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrintingFullLog(false);
+    }, 500);
+  };
+
   const notifyStaf = async (guest: GuestEntry) => {
     const approvalLink = `${window.location.origin}${window.location.pathname}?approval=${guest.id}`;
     const message = `*TAMU KKT REGISTER*\nTanggal: ${guest.tanggal}\nNama: ${guest.namaLengkap}\nInstansi: ${guest.asalInstansi}\nKeperluan: ${guest.keperluan}\nApproval: ${approvalLink}`;
     const res = await sendWAAuto(guest.nomorHpPJ, message);
     if (!res.success) window.open(getManualWALink(guest.nomorHpPJ, message), '_blank');
     else alert("Notifikasi Terkirim!");
+  };
+
+  const openDoc = (guest: GuestEntry) => {
+    if (!guest.k3Pdf) return;
+    const isPdf = guest.k3Pdf.startsWith('data:application/pdf');
+    setSelectedImage({ url: guest.k3Pdf, title: `Dokumen K3: ${guest.namaLengkap}`, isPdf });
   };
 
   const dateFilterLabels: Record<DateFilterType, string> = {
@@ -110,6 +144,136 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
 
   return (
     <div className="flex flex-col bg-slate-50 min-h-[600px] rounded-3xl md:rounded-[4rem] overflow-hidden">
+      
+      {/* PRINT TEMPLATE: VISITOR PASS (ID Card style) */}
+      {printGuest && !isPrintingFullLog && (
+        <div id="guest-pass-print" className="hidden print:block fixed inset-0 bg-white z-[9999] p-10">
+          <div className="max-w-[400px] mx-auto border-4 border-brand-navy rounded-[2rem] overflow-hidden shadow-2xl">
+             <div className="bg-brand-navy p-6 text-white text-center">
+                <p className="text-[10px] font-black tracking-[0.4em] mb-1 uppercase">PT KALTIM KARIANGAU TERMINAL</p>
+                <h2 className="text-2xl font-black italic">VISITOR PASS</h2>
+             </div>
+             <div className="p-8 space-y-6 flex flex-col items-center">
+                <div className="w-40 h-40 bg-slate-100 rounded-3xl border-4 border-slate-200 overflow-hidden shadow-inner">
+                   {printGuest.fotoTamu ? <img src={printGuest.fotoTamu} className="w-full h-full object-cover" /> : <User size={60} className="m-auto mt-10 text-slate-300" />}
+                </div>
+                <div className="text-center">
+                   <h3 className="text-2xl font-black text-brand-navy tracking-tight">{printGuest.namaLengkap}</h3>
+                   <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">{printGuest.asalInstansi || 'Pribadi'}</p>
+                </div>
+                <div className="w-full grid grid-cols-2 gap-4 border-y border-slate-100 py-6">
+                   <div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Waktu Masuk</p>
+                      <p className="text-xs font-black text-brand-navy">{printGuest.jamMasuk} WITA</p>
+                      <p className="text-[9px] font-bold text-slate-500 mt-1">{printGuest.tanggal}</p>
+                   </div>
+                   <div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Staf Tujuan</p>
+                      <p className="text-xs font-black text-brand-navy truncate">{printGuest.penanggungJawab}</p>
+                      <p className="text-[9px] font-bold text-slate-500 mt-1">{printGuest.divisi}</p>
+                   </div>
+                </div>
+                <div className="flex items-center justify-between w-full bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                   <div className="space-y-1">
+                      <div className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block ${printGuest.visitType === VisitType.VENDOR ? 'bg-red-100 text-brand-red' : 'bg-blue-100 text-brand-navy'}`}>
+                         {printGuest.visitType}
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-700 mt-1">{printGuest.keperluan}</p>
+                   </div>
+                   <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                      <QrCode size={40} className="text-brand-navy" />
+                   </div>
+                </div>
+                <div className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] text-center pt-2">
+                   Mohon kembalikan kartu ini saat checkout
+                </div>
+             </div>
+             <div className={`h-4 w-full ${printGuest.status === GuestStatus.DIIZINKAN ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
+          </div>
+        </div>
+      )}
+
+      {/* PRINT TEMPLATE: FULL LOG REPORT (Table style) */}
+      {isPrintingFullLog && (
+        <div id="full-log-print" className="hidden print:block fixed inset-0 bg-white z-[9999] p-8 overflow-visible">
+          <div className="flex items-center justify-between border-b-4 border-brand-navy pb-6 mb-8">
+            <div>
+              <h1 className="text-2xl font-black text-brand-navy uppercase tracking-tighter">PT KALTIM KARIANGAU TERMINAL</h1>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Laporan Log Buku Tamu Digital (SI-TAMU)</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[9px] font-black text-slate-400 uppercase">Periode Laporan:</p>
+              <p className="text-sm font-black text-brand-navy uppercase">{dateFilterLabels[dateFilter]}</p>
+            </div>
+          </div>
+
+          <table className="w-full border-collapse text-[10px]">
+            <thead>
+              <tr className="bg-slate-100">
+                <th className="border border-slate-300 p-2 font-black uppercase text-center">Waktu</th>
+                <th className="border border-slate-300 p-2 font-black uppercase">Tamu & Instansi</th>
+                <th className="border border-slate-300 p-2 font-black uppercase">Tujuan & Staf</th>
+                <th className="border border-slate-300 p-2 font-black uppercase">Foto Wajah</th>
+                <th className="border border-slate-300 p-2 font-black uppercase">KTP/Dokumen</th>
+                <th className="border border-slate-300 p-2 font-black uppercase text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredGuests.map((g) => (
+                <tr key={g.id} className="page-break-inside-avoid">
+                  <td className="border border-slate-300 p-2 align-top text-center">
+                    <div className="font-black">{g.jamMasuk}</div>
+                    <div className="text-[8px] text-slate-500">{g.tanggal}</div>
+                    {g.jamKeluar && <div className="text-[8px] text-brand-red font-bold mt-1">OUT: {g.jamKeluar}</div>}
+                  </td>
+                  <td className="border border-slate-300 p-2 align-top">
+                    <div className="font-black text-brand-navy text-[11px]">{g.namaLengkap}</div>
+                    <div className="text-slate-500 italic mb-1">{g.asalInstansi || 'Pribadi'}</div>
+                    <div className="text-[8px] font-bold uppercase">{g.visitType} {g.isGroup ? '(ROMBONGAN)' : ''}</div>
+                  </td>
+                  <td className="border border-slate-300 p-2 align-top">
+                    <div className="font-bold uppercase text-slate-700">{g.keperluan}</div>
+                    <div className="text-[9px] text-brand-navy mt-1">Bertemu: {g.penanggungJawab}</div>
+                    <div className="text-[8px] text-slate-400">({g.divisi})</div>
+                  </td>
+                  <td className="border border-slate-300 p-2 align-top text-center w-24">
+                    {g.fotoTamu ? (
+                      <img src={g.fotoTamu} className="w-20 h-20 object-cover mx-auto rounded-lg border border-slate-200" alt="Foto" />
+                    ) : '-'}
+                  </td>
+                  <td className="border border-slate-300 p-2 align-top text-center">
+                    <div className="flex flex-col gap-2 items-center">
+                      {g.fotoKTP && <img src={g.fotoKTP} className="w-16 h-10 object-cover rounded-md border border-slate-200 shadow-sm" alt="KTP" />}
+                      {g.k3Pdf && <div className="text-[7px] font-black text-brand-red border border-brand-red px-1 py-0.5 rounded uppercase">Ada Dokumen K3</div>}
+                    </div>
+                  </td>
+                  <td className="border border-slate-300 p-2 align-top text-center">
+                    <div className={`px-2 py-1 rounded-full text-[8px] font-black inline-block border ${
+                      g.status === GuestStatus.DIIZINKAN ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                      g.status === GuestStatus.DITOLAK ? 'bg-red-50 text-brand-red border-red-100' :
+                      'bg-amber-50 text-amber-600 border-amber-100'
+                    }`}>
+                      {g.status}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-12 flex justify-end gap-12 text-center mr-10">
+             <div>
+               <p className="text-[9px] font-black text-slate-400 uppercase mb-16">Petugas Sekuriti</p>
+               <div className="border-t border-slate-900 w-32 pt-1 font-black uppercase text-[10px]">Tanda Tangan</div>
+             </div>
+             <div>
+               <p className="text-[9px] font-black text-slate-400 uppercase mb-16">Verifikasi Sistem</p>
+               <div className="border-t border-slate-900 w-32 pt-1 font-black uppercase text-[10px]">Dicetak Otomatis</div>
+             </div>
+          </div>
+        </div>
+      )}
+
       {/* STATS HEADER */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 p-6 md:p-8">
         <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200/60 flex items-center justify-between group hover:shadow-lg transition-all">
@@ -182,9 +346,12 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
                 )}
             </div>
             
-            <div className="flex gap-2 w-full sm:w-auto">
-                <button onClick={exportData} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-slate-600 border border-slate-200 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-50">
-                    <FileSpreadsheet size={16} className="text-emerald-600" /> EXCEL (CSV)
+            <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
+                <button onClick={handlePrintFullLog} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-slate-600 border border-slate-200 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all">
+                    <FileDown size={16} className="text-brand-red group-hover:text-white" /> PDF LOG
+                </button>
+                <button onClick={exportData} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-slate-600 border border-slate-200 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all group">
+                    <FileSpreadsheet size={16} className="text-emerald-600 group-hover:text-white" /> EXCEL (CSV)
                 </button>
                 {onAddGuest && (
                     <button onClick={onAddGuest} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-brand-navy text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-brand-red transition-all shadow-lg shadow-blue-900/10">
@@ -237,25 +404,37 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
                                         >
                                             {guest.fotoTamu ? <img src={guest.fotoTamu} className="w-full h-full object-cover" /> : <User className="m-auto text-slate-300" />}
                                         </div>
-                                        <div className="min-w-0">
+                                        <div className="min-w-0 flex-grow">
                                             <div className="font-black text-brand-navy text-sm md:text-base truncate mb-1 leading-none">{guest.namaLengkap}</div>
                                             <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-bold text-slate-400 italic mb-2">
                                                 <span className="truncate">{guest.asalInstansi || 'Pribadi'}</span>
                                                 <span className={`uppercase whitespace-nowrap ${guest.visitType === VisitType.VENDOR ? 'text-brand-red' : 'text-brand-navy'}`}>({guest.visitType})</span>
                                             </div>
                                             
-                                            {/* INDIKATOR ROMBONGAN */}
-                                            {guest.isGroup && (
-                                              <div className="flex flex-col gap-1.5 mt-1">
-                                                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg border border-emerald-100 w-fit">
-                                                  <Users size={12} />
-                                                  <span className="text-[9px] font-black uppercase tracking-widest">ROMBONGAN (+{guest.groupMembers.length})</span>
-                                                </div>
-                                                <div className="text-[8px] font-medium text-slate-400 italic max-w-[200px] leading-relaxed line-clamp-2">
-                                                  Anggota: {guest.groupMembers.join(', ')}
-                                                </div>
-                                              </div>
-                                            )}
+                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                {guest.isGroup && (
+                                                  <div className="flex flex-col gap-1.5">
+                                                    <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg border border-emerald-100 w-fit">
+                                                      <Users size={12} />
+                                                      <span className="text-[9px] font-black uppercase tracking-widest">ROMBONGAN (+{guest.groupMembers.length})</span>
+                                                    </div>
+                                                    <div className="text-[8px] font-medium text-slate-400 italic max-w-[200px] leading-relaxed line-clamp-1">
+                                                      Anggota: {guest.groupMembers.join(', ')}
+                                                    </div>
+                                                  </div>
+                                                )}
+
+                                                {guest.visitType === VisitType.VENDOR && guest.k3Pdf && (
+                                                  <button 
+                                                    onClick={() => openDoc(guest)}
+                                                    className="flex items-center gap-2 bg-brand-red/5 text-brand-red px-2 py-1 rounded-lg border border-brand-red/10 hover:bg-brand-red hover:text-white transition-all w-fit group/doc"
+                                                  >
+                                                    <FileText size={12} />
+                                                    <span className="text-[9px] font-black uppercase tracking-widest">LIHAT DOKUMEN K3</span>
+                                                    <ExternalLink size={10} className="opacity-0 group-hover/doc:opacity-100" />
+                                                  </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -298,12 +477,21 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
                                         )}
                                         
                                         {!guest.jamKeluar && guest.status === GuestStatus.DIIZINKAN && (
-                                            <button 
-                                                onClick={() => onCheckout(guest.id)}
-                                                className="px-4 py-2 bg-brand-navy text-white text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-brand-red transition-all shadow-md"
-                                            >
-                                                OUT
-                                            </button>
+                                            <div className="flex gap-1">
+                                                <button 
+                                                    onClick={() => onCheckout(guest.id)}
+                                                    className="px-4 py-2 bg-brand-navy text-white text-[8px] md:text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-brand-red transition-all shadow-md"
+                                                >
+                                                    OUT
+                                                </button>
+                                                <button 
+                                                    onClick={() => handlePrintPass(guest)}
+                                                    className="p-2 bg-white text-slate-600 border border-slate-200 rounded-lg hover:text-brand-navy transition-all shadow-sm"
+                                                    title="Cetak Pass / PDF"
+                                                >
+                                                    <Printer size={14} />
+                                                </button>
+                                            </div>
                                         )}
                                         <button onClick={() => notifyStaf(guest)} className="p-2 text-slate-400 hover:text-emerald-500 border border-slate-200 rounded-lg bg-white shadow-sm transition-all" title="Kirim Ulang Notifikasi WA">
                                             <Send size={14} />
@@ -318,13 +506,31 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, role, onAddGu
         </div>
       </div>
 
-      {/* MODAL IMAGE PREVIEW */}
+      {/* MODAL PREVIEW (Image/PDF) */}
       {selectedImage && (
         <div className="fixed inset-0 bg-brand-navy/95 backdrop-blur-xl z-[400] flex items-center justify-center p-6 md:p-10" onClick={() => setSelectedImage(null)}>
-          <div className="relative max-w-4xl w-full flex flex-col items-center animate-in zoom-in duration-300">
-            <button className="absolute -top-12 md:-top-16 right-0 text-white/50 hover:text-white transition-all bg-white/10 p-3 md:p-4 rounded-full"><X size={24} className="md:w-8 md:h-8" /></button>
-            <div className="bg-white p-2 md:p-3 rounded-2xl md:rounded-[3rem] shadow-2xl overflow-hidden max-h-[70vh]">
-              <img src={selectedImage.url} className="max-w-full max-h-full object-contain rounded-xl md:rounded-[2rem]" />
+          <div className="relative max-w-5xl w-full flex flex-col items-center animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+            <button 
+              onClick={() => setSelectedImage(null)}
+              className="absolute -top-12 md:-top-16 right-0 text-white/50 hover:text-white transition-all bg-white/10 p-3 md:p-4 rounded-full z-10"
+            >
+              <X size={24} className="md:w-8 md:h-8" />
+            </button>
+            
+            <div className="bg-white p-2 md:p-3 rounded-2xl md:rounded-[3rem] shadow-2xl overflow-hidden w-full h-[70vh]">
+              {selectedImage.isPdf ? (
+                <iframe 
+                  src={selectedImage.url} 
+                  className="w-full h-full rounded-xl md:rounded-[2rem] border-none" 
+                  title="PDF Viewer"
+                />
+              ) : (
+                <img 
+                  src={selectedImage.url} 
+                  className="w-full h-full object-contain rounded-xl md:rounded-[2rem]" 
+                  alt="Preview"
+                />
+              )}
             </div>
             <h3 className="text-white font-black uppercase tracking-[0.4em] mt-6 md:mt-8 text-base md:text-xl italic">{selectedImage.title}</h3>
           </div>

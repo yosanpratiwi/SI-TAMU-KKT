@@ -12,7 +12,7 @@ import { sendWAAuto, generateGuestMessage, getManualWALink } from './services/wh
 import { ShieldAlert, ClipboardList, CheckCircle2, ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
 
 const DAFTAR_PETUGAS = [
-  { username: 'admin', password: 'admin123' },
+  { username: 'admin', password: '123' },
   { username: 'sekuriti', password: '123' }
 ];
 

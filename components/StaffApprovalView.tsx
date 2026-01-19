@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GuestEntry, GuestStatus, VisitType } from '../types';
-import { Check, Ban, MessageSquare, Clock, User, Building, MapPin, Target, Users, HardHat, X, Info, AlertTriangle, FileText, ExternalLink } from 'lucide-react';
+import { Check, Ban, MessageSquare, Clock, User, Building, Target, Users, X, Info, AlertTriangle, FileText, ExternalLink } from 'lucide-react';
 
 interface StaffApprovalViewProps {
   guest: GuestEntry | undefined;
@@ -35,16 +35,6 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
               <AlertTriangle size={48} />
            </div>
            <h2 className="text-3xl font-black text-brand-navy tracking-tight uppercase">Data Tidak Ditemukan</h2>
-           <div className="mt-8 space-y-4 text-slate-500 font-bold leading-relaxed text-sm">
-              <p>Hal ini terjadi karena link dibuka di perangkat yang berbeda dengan perangkat pendaftaran (Laptop Sekuriti).</p>
-              <div className="bg-slate-50 p-6 rounded-2xl text-left border border-slate-200">
-                <p className="text-brand-navy mb-2">💡 Solusi untuk Percobaan:</p>
-                <ul className="list-disc ml-5 space-y-1 text-xs">
-                  <li>Buka link ini di browser yang sama dengan saat Anda mendaftarkan tamu tadi.</li>
-                  <li>Atau, gunakan fitur <b>Dashboard Staf</b> untuk simulasi persetujuan.</li>
-                </ul>
-              </div>
-           </div>
            <button 
              onClick={() => window.location.href = window.location.origin + window.location.pathname}
              className="mt-10 w-full py-5 bg-slate-100 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:bg-slate-200 transition-all"
@@ -57,6 +47,14 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
   }
 
   const isPdf = localGuest.k3Pdf?.startsWith('data:application/pdf');
+
+  const handleActionClick = (status: GuestStatus) => {
+    if (status === GuestStatus.DITOLAK && !note.trim()) {
+      alert("Alasan penolakan wajib diisi!");
+      return;
+    }
+    onAction(localGuest.id, status, note);
+  };
 
   return (
     <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden max-w-3xl mx-auto border border-slate-200 animate-in fade-in slide-in-from-bottom-10 duration-700">
@@ -80,7 +78,7 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
             <Target size={40} className="text-white" />
          </div>
          <h2 className="text-3xl font-black tracking-tighter italic">Persetujuan Kedatangan Tamu</h2>
-         <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.4em] mt-3">SI-TAMU KKT INTERNAL CONFIRMATION</p>
+         <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.4em] mt-3">SI-TAMU KKT PEGAWAI CONFIRMATION</p>
       </div>
 
       <div className="p-12 space-y-10">
@@ -93,11 +91,11 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
                   <h3 className="text-3xl font-black text-brand-navy tracking-tight">{localGuest.namaLengkap}</h3>
                   <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
                      <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${localGuest.visitType === VisitType.VENDOR ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-blue-50 text-brand-navy border border-blue-100'}`}>
-                        {localGuest.visitType === VisitType.VENDOR ? <HardHat size={12} /> : <User size={12} />} {localGuest.visitType}
+                        {localGuest.visitType === VisitType.UMUM ? 'UMUM' : (localGuest.visitType as string === 'STANDARD' ? 'UMUM' : 'VENDOR')}
                      </span>
                      {localGuest.isGroup && (
                         <span className="bg-emerald-50 text-brand-green border border-emerald-100 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                            <Users size={12} /> ROMBONGAN (+{localGuest.groupMembers.length})
+                            <Users size={12} /> KELOMPOK (+{localGuest.groupMembers.length})
                         </span>
                      )}
                   </div>
@@ -120,39 +118,30 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex items-center gap-4">
                <Target size={24} className="text-brand-navy" />
                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tujuan Bertemu</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pegawai Yang Dituju</p>
                   <p className="text-base font-black text-slate-900">{localGuest.penanggungJawab}</p>
                </div>
             </div>
          </div>
 
-         {/* VENDOR DOCUMENT SECTION */}
          {localGuest.visitType === VisitType.VENDOR && localGuest.k3Pdf && (
            <div className="bg-brand-red/5 p-8 rounded-[2rem] border-2 border-brand-red/10 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-5">
-                <div className="bg-white p-4 rounded-2xl text-brand-red shadow-sm">
-                   <FileText size={28} />
-                </div>
-                <div>
-                  <h4 className="text-[12px] font-black text-brand-red uppercase tracking-widest">Dokumen K3 / Izin Kerja</h4>
-                  <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Wajib diverifikasi sebelum approval</p>
-                </div>
+                <FileText size={28} className="text-brand-red" />
+                <h4 className="text-[12px] font-black text-brand-red uppercase tracking-widest">Dokumen K3 / Izin Kerja</h4>
               </div>
-              <button 
-                onClick={() => setShowDoc(true)}
-                className="bg-brand-red text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-brand-red/20 hover:scale-105 active:scale-95 transition-all"
-              >
+              <button onClick={() => setShowDoc(true)} className="bg-brand-red text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg">
                 LIHAT DOKUMEN <ExternalLink size={14} />
               </button>
            </div>
          )}
 
          <div className="space-y-4">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2"><MessageSquare size={16} /> Pesan / Instruksi Untuk Sekuriti</label>
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2"><MessageSquare size={16} /> Pesan / Instruksi * (Wajib jika menolak)</label>
             <textarea 
                className="w-full p-6 rounded-3xl border-2 border-slate-100 bg-slate-50 focus:border-brand-navy focus:bg-white transition-all outline-none font-bold text-sm" 
                rows={3}
-               placeholder="Contoh: Silakan tunggu di Lobby / Langsung arahkan ke Ruang Rapat"
+               placeholder="Berikan instruksi atau alasan penolakan..."
                value={note}
                onChange={(e) => setNote(e.target.value)}
             />
@@ -160,14 +149,14 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
 
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6">
             <button 
-               onClick={() => onAction(localGuest.id, GuestStatus.DIIZINKAN, note)}
-               className="bg-brand-green text-white py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4"
+               onClick={() => handleActionClick(GuestStatus.DIIZINKAN)}
+               className="bg-brand-green text-white py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-4"
             >
                <Check size={24} /> SETUJUI TAMU
             </button>
             <button 
-               onClick={() => onAction(localGuest.id, GuestStatus.DITOLAK, note)}
-               className="bg-white border-4 border-slate-100 text-slate-300 hover:text-brand-red hover:border-brand-red/10 py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4 shadow-xl"
+               onClick={() => handleActionClick(GuestStatus.DITOLAK)}
+               className="bg-white border-4 border-slate-100 text-slate-300 hover:text-brand-red hover:border-brand-red/10 py-6 rounded-3xl font-black text-[12px] uppercase tracking-[0.3em] hover:scale-105 transition-all flex items-center justify-center gap-4 shadow-xl"
             >
                <Ban size={24} /> TOLAK KUNJUNGAN
             </button>

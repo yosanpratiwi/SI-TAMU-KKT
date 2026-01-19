@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Camera, RefreshCw, Check, X, CheckCircle2 } from 'lucide-react';
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Notification, GuestStatus, GuestEntry } from '../types';
 import { Bell, X, Info, Check, Ban, MessageSquare, UserCircle, BellRing } from 'lucide-react';

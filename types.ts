@@ -1,4 +1,3 @@
-
 export enum GuestStatus {
   PENDING = 'PENDING',
   DIIZINKAN = 'DIIZINKAN',
@@ -9,11 +8,11 @@ export enum GuestStatus {
 export enum UserRole {
   SEKURITI = 'SEKURITI',
   TAMU = 'TAMU',
-  STAF = 'STAF' // Role tambahan untuk simulasi persetujuan staf
+  STAF = 'STAF'
 }
 
 export enum VisitType {
-  STANDARD = 'STANDARD',
+  UMUM = 'UMUM',
   VENDOR = 'VENDOR'
 }
 
@@ -29,18 +28,15 @@ export interface GuestEntry {
   nomorHp: string;
   nomorKtp: string;
   
-  // Photo & Documents
   fotoTamu?: string;
   fotoKTP?: string;
   k3Pdf?: string; 
 
-  // Internal Destination
   tujuan: string;
   divisi: string;
   nomorHpPJ: string;
-  penanggungJawab: string; // Staf internal KKT
+  penanggungJawab: string;
   
-  // Vendor specific
   deskripsiPekerjaan?: string;
   lokasiPekerjaan?: string;
   

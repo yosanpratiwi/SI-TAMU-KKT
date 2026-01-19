@@ -12,23 +12,20 @@ import { sendWAAuto, generateGuestMessage, getManualWALink } from './services/wh
 import { ShieldAlert, ClipboardList, CheckCircle2, ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
 
 const DAFTAR_PETUGAS = [
-  { username: 'admin', password: '123' },
+  { username: 'admin', password: 'admin123' },
   { username: 'sekuriti', password: '123' }
 ];
 
 const App: React.FC = () => {
-  // Inisialisasi status login sekuriti dari storage
   const [isSecurityLoggedIn, setIsSecurityLoggedIn] = useState(() => {
     return sessionStorage.getItem('kkt_security_auth') === 'true';
   });
 
-  // Inisialisasi role berdasarkan status login
   const [role, setRole] = useState<UserRole>(() => {
     const auth = sessionStorage.getItem('kkt_security_auth') === 'true';
     return auth ? UserRole.SEKURITI : UserRole.TAMU;
   });
 
-  // Inisialisasi view berdasarkan status login
   const [view, setView] = useState<'form' | 'list' | 'success' | 'approval' | 'staff_dashboard'>(() => {
     const auth = sessionStorage.getItem('kkt_security_auth') === 'true';
     return auth ? 'list' : 'form';
@@ -68,8 +65,6 @@ const App: React.FC = () => {
       setRole(UserRole.STAF);
       setView('staff_dashboard');
     } else {
-      // Jika kembali ke mode tamu, kita tetap simpan login sekuriti di background 
-      // tapi secara tampilan kembali ke form tamu
       setRole(UserRole.TAMU);
       setView('form');
     }
@@ -119,8 +114,27 @@ const App: React.FC = () => {
     setGuests(prev => prev.map(g => g.id === id ? { ...g, jamKeluar: timeStr } : g));
   }, []);
 
+  const handleDeleteGuest = (id: string) => {
+    setGuests(prev => prev.filter(g => g.id !== id));
+  };
+
   const handleStaffAction = (guestId: string, status: GuestStatus, catatan: string) => {
-    const updated = guests.map(g => g.id === guestId ? { ...g, status, catatan } : g);
+    const now = new Date();
+    const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    const updated = guests.map(g => {
+      if (g.id === guestId) {
+        // Jika ditolak, otomatis jamKeluar terisi
+        return { 
+          ...g, 
+          status, 
+          catatan,
+          jamKeluar: status === GuestStatus.DITOLAK ? timeStr : g.jamKeluar 
+        };
+      }
+      return g;
+    });
+    
     setGuests(updated);
     
     if (view === 'approval') {
@@ -140,7 +154,6 @@ const App: React.FC = () => {
       <main className="flex-grow flex flex-col items-center justify-start py-6 md:py-12 px-4 md:px-6">
         <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-8 items-start justify-center">
           
-          {/* Menu Samping Khusus Mode Sekuriti */}
           {role === UserRole.SEKURITI && isSecurityLoggedIn && (view === 'form' || view === 'list') && (
             <div className="w-full lg:w-auto sticky top-32 z-30">
               <SecurityMenu 
@@ -176,8 +189,8 @@ const App: React.FC = () => {
                         <ClipboardList size={32} />
                      </div>
                      <div>
-                        <h2 className="text-2xl font-[900] tracking-widest uppercase italic">BUKU TAMU DIGITAL</h2>
-                        <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.5em] mt-1">Lobby LANTAI 1 - KKT</p>
+                        <h2 className="text-2xl font-[900] tracking-widest uppercase italic">REGISTRATION</h2>
+                        <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.5em] mt-1">Lobby Gate 01 - KKT</p>
                      </div>
                   </div>
                 </div>
@@ -185,7 +198,12 @@ const App: React.FC = () => {
               </div>
             ) : (role === UserRole.SEKURITI && isSecurityLoggedIn && view === 'list') ? (
               <div className="bg-white rounded-3xl md:rounded-[4rem] shadow-2xl overflow-hidden border border-slate-100">
-                <GuestList guests={guests} onCheckout={handleCheckout} role={role} onAddGuest={() => setView('form')} />
+                <GuestList 
+                  guests={guests} 
+                  onCheckout={handleCheckout} 
+                  onDelete={handleDeleteGuest}
+                  role={role} 
+                />
               </div>
             ) : role === UserRole.SEKURITI && !isSecurityLoggedIn && !showLoginModal ? (
               <div className="flex flex-col items-center justify-center py-20 w-full">
@@ -198,7 +216,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="py-8 text-center bg-white border-t border-slate-100">
-        <p className="text-[10px] font-bold text-brand-navy uppercase tracking-[0.2em]">&copy; PT KALTIM KARIANGAU TERMINAL 2026</p>
+        <p className="text-[10px] font-bold text-brand-navy uppercase tracking-[0.2em]">&copy; 2026 PT KALTIM KARIANGAU TERMINAL</p>
       </footer>
 
       {role === UserRole.STAF && view === 'staff_dashboard' && (

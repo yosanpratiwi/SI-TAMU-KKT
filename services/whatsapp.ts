@@ -2,7 +2,7 @@
 import { GuestEntry } from '../types';
 
 // PENTING: Untuk pengiriman OTOMATIS tanpa buka WA, isi token dari fonnte.com
-const WHATSAPP_API_TOKEN = 'HUd8BtzQ8ZpBYnZKeNSC'; 
+const WHATSAPP_API_TOKEN = 'dWPXNHCioAhDWDW8X596'; 
 
 export const sendWAAuto = async (phone: string, message: string) => {
   if (!WHATSAPP_API_TOKEN) {

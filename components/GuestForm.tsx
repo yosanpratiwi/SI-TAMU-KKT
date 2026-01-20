@@ -116,11 +116,16 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
     const cleanHpPJ = formData.nomorHpPJ.replace(/\+/g, '');
     if (!formData.nomorHpPJ.trim() || cleanHpPJ === '62') newErrors.nomorHpPJ = 'Nomor WA pegawai wajib diisi.';
     
-    if (!formData.fotoTamu) newErrors.fotoTamu = 'Ambil foto wajah.';
-    if (!formData.fotoKTP) newErrors.fotoKTP = 'Ambil foto KTP.';
-
+    // Foto dan K3 sekarang OPSIONAL, jadi tidak masuk validasi error mandatory
+    
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    const errorCount = Object.keys(newErrors).length;
+    if (errorCount > 0) {
+      alert("Pendaftaran gagal. Mohon lengkapi semua kolom.");
+    }
+    
+    return errorCount === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -177,19 +182,19 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 md:gap-y-10">
         <div className="col-span-full flex items-center gap-4">
-            <h3 className="text-[10px] md:text-[11px] font-black text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap">
+            <h3 className="text-[18px] font-black text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap">
                 {formData.isGroup ? 'Identitas PJ Kelompok' : 'Identitas Tamu'}
             </h3>
             <div className="h-px bg-slate-200 w-full"></div>
         </div>
 
         <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-          <CameraCapture label="FOTO WAJAH (WAJIB)" onCapture={(img) => setFormData({...formData, fotoTamu: img})} />
-          <CameraCapture label="FOTO KTP/ID (WAJIB)" onCapture={(img) => setFormData({...formData, fotoKTP: img})} />
+          <CameraCapture label="FOTO WAJAH" onCapture={(img) => setFormData({...formData, fotoTamu: img})} />
+          <CameraCapture label="FOTO KTP/ID" onCapture={(img) => setFormData({...formData, fotoKTP: img})} />
         </div>
 
         <div className="space-y-1">
-          <label className={labelClasses}><User size={14} className="text-brand-navy" /> NAMA LENGKAP TAMU </label>
+          <label className={labelClasses}><User size={14} className="text-brand-navy" /> NAMA LENGKAP </label>
           <input type="text" className={inputClasses(errors.namaLengkap)} placeholder="Sesuai KTP" value={formData.namaLengkap} onChange={(e) => setFormData({ ...formData, namaLengkap: e.target.value })} />
           {errors.namaLengkap && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.namaLengkap}</p>}
         </div>
@@ -205,7 +210,7 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
           <input 
             type="text" 
             className={inputClasses(errors.nomorHp)} 
-            placeholder="+62812..." 
+            placeholder="+62" 
             value={formData.nomorHp}
             onFocus={() => handlePhoneFocus('nomorHp')}
             onBlur={() => handlePhoneBlur('nomorHp')}
@@ -215,7 +220,7 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
         </div>
 
         <div className="space-y-1">
-          <label className={labelClasses}><CreditCard size={14} className="text-brand-navy" /> NIK KTP </label>
+          <label className={labelClasses}><CreditCard size={14} className="text-brand-navy" /> NIK </label>
           <input type="text" maxLength={16} className={inputClasses(errors.nomorKtp)} placeholder="16 Digit NIK" value={formData.nomorKtp} onChange={(e) => setFormData({ ...formData, nomorKtp: e.target.value.replace(/[^0-9]/g, '') })} />
           {errors.nomorKtp && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.nomorKtp}</p>}
         </div>
@@ -256,7 +261,7 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
         )}
 
         <div className="col-span-full flex items-center gap-4 mt-6 md:mt-8">
-            <h3 className="text-[10px] md:text-[11px] font-black text-brand-red uppercase tracking-[0.3em] whitespace-nowrap">KONFIRMASI PEGAWAI</h3>
+            <h3 className="text-[18px] font-black text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap">KONFIRMASI PEGAWAI</h3>
             <div className="h-px bg-slate-200 w-full"></div>
         </div>
 
@@ -277,7 +282,7 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
           <input 
             type="text" 
             className={inputClasses(errors.nomorHpPJ)} 
-            placeholder="+62812..." 
+            placeholder="+62" 
             value={formData.nomorHpPJ}
             onFocus={() => handlePhoneFocus('nomorHpPJ')}
             onBlur={() => handlePhoneBlur('nomorHpPJ')}

@@ -40,41 +40,37 @@ export const getManualWALink = (phone: string, message: string) => {
   return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
 };
 
-// Membuat template pesan WhatsApp sesuai tipe kunjungan (Individu/Rombongan)
-export const generateGuestMessage = (guest: GuestEntry) => {
+export const generateGuestMessage = (guest: GuestEntry, isResend = false) => {
   const now = new Date();
   const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   
-  // Deteksi URL untuk link approval
   const baseUrl = window.location.origin + window.location.pathname;
   const approvalLink = `${baseUrl}?approval=${guest.id}`;
+  
+  const headerPrefix = isResend ? "*PENGINGAT KEDATANGAN TAMU (URGENT)*\n" : "*NOTIFIKASI TAMU BARU*\n";
 
   if (guest.isGroup) {
-    // TEMPLATE ROMBONGAN
     const totalAnggota = guest.groupMembers?.length || 0;
     const totalOrang = 1 + totalAnggota;
     const daftarAnggota = guest.groupMembers?.join(', ') || '-';
 
-    return `*NOTIFIKASI TAMU ROMBONGAN* 
-SI-TAMU KKT
+    return `${headerPrefix}SI-TAMU KKT
 
 Halo Bapak/Ibu ${guest.penanggungJawab},
-Tamu ROMBONGAN Anda telah tiba di Lobby (Total: ${totalOrang} Orang):
+Tamu ROMBONGAN Anda (Total: ${totalOrang} Orang) Telah tiba di Lobby:
 
 PJ Rombongan: ${guest.namaLengkap}
 Anggota: ${daftarAnggota}
 Asal: ${guest.asalInstansi || 'Pribadi'}
 Keperluan: ${guest.keperluan}
-Waktu: ${timeStr} WITA
+Waktu Tiba: ${guest.jamMasuk} WITA
 
-Mohon kesediaannya untuk memberikan konfirmasi melalui link di bawah ini:
+Mohon segera berikan konfirmasi melalui link di bawah ini:
 ${approvalLink}
 
-(Jika link tidak bisa diklik, mohon simpan nomor ini atau balas pesan ini terlebih dahulu)`;
+Terima Kasih.`;
   } else {
-    // TEMPLATE INDIVIDU
-    return `*NOTIFIKASI TAMU* 
-SI-TAMU KKT
+    return `${headerPrefix}SI-TAMU KKT
 
 Halo Bapak/Ibu ${guest.penanggungJawab},
 Tamu Anda telah tiba di Lobby:
@@ -82,11 +78,11 @@ Tamu Anda telah tiba di Lobby:
 Nama: ${guest.namaLengkap}
 Asal: ${guest.asalInstansi || 'Pribadi'}
 Keperluan: ${guest.keperluan}
-Waktu: ${timeStr} WITA
+Waktu Tiba: ${guest.jamMasuk} WITA
 
-Mohon kesediaannya untuk memberikan konfirmasi melalui link di bawah ini:
+Mohon segera berikan konfirmasi melalui link di bawah ini:
 ${approvalLink}
 
-(Jika link tidak bisa diklik, mohon simpan nomor ini atau balas pesan ini terlebih dahulu)`;
+Terima Kasih.`;
   }
 };

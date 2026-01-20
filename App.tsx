@@ -95,7 +95,10 @@ const App: React.FC = () => {
     setGuests(prev => [entry, ...prev]);
     const message = generateGuestMessage(entry);
 
+    // Kirim WA Otomatis
     const result = await sendWAAuto(entry.nomorHpPJ, message);
+    
+    // Fallback: Jika gagal otomatis atau API key kosong, buka WA web secara langsung
     if (!result.success) {
       const waLink = getManualWALink(entry.nomorHpPJ, message);
       window.open(waLink, '_blank');
@@ -107,6 +110,15 @@ const App: React.FC = () => {
       setView('success');
     }
   }, [isSecurityLoggedIn]);
+
+  const handleResendNotification = (guestId: string) => {
+    const guest = guests.find(g => g.id === guestId);
+    if (guest) {
+      const message = generateGuestMessage(guest, true);
+      const waLink = getManualWALink(guest.nomorHpPJ, message);
+      window.open(waLink, '_blank');
+    }
+  };
 
   const handleCheckout = useCallback((id: string) => {
     const now = new Date();
@@ -124,7 +136,6 @@ const App: React.FC = () => {
     
     const updated = guests.map(g => {
       if (g.id === guestId) {
-        // Jika ditolak, otomatis jamKeluar terisi
         return { 
           ...g, 
           status, 
@@ -177,6 +188,7 @@ const App: React.FC = () => {
                    <CheckCircle2 size={48} />
                 </div>
                 <h2 className="text-3xl font-black text-brand-navy mb-10 italic uppercase tracking-tight">REGISTRASI BERHASIL</h2>
+                <p className="text-slate-500 font-bold mb-8">Pesan konfirmasi sedang dikirim ke pegawai tujuan.</p>
                 <button onClick={() => setView('form')} className="w-full btn-brand-gradient text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] flex items-center justify-center gap-4">
                     KEMBALI KE BERANDA <ArrowRight size={18} />
                 </button>
@@ -189,8 +201,8 @@ const App: React.FC = () => {
                         <ClipboardList size={32} />
                      </div>
                      <div>
-                        <h2 className="text-2xl font-[900] tracking-widest uppercase italic">REGISTRATION</h2>
-                        <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.5em] mt-1">Lobby Gate 01 - KKT</p>
+                        <h2 className="text-2xl font-[900] tracking-widest uppercase italic">BUKU TAMU DIGITAL</h2>
+                        <p className="text-white/50 text-[10px] font-bold uppercase tracking-[0.5em] mt-1">Lobby Kaltim Kariangau Terminal</p>
                      </div>
                   </div>
                 </div>
@@ -202,6 +214,7 @@ const App: React.FC = () => {
                   guests={guests} 
                   onCheckout={handleCheckout} 
                   onDelete={handleDeleteGuest}
+                  onResendNotification={handleResendNotification}
                   role={role} 
                 />
               </div>
@@ -216,7 +229,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="py-8 text-center bg-white border-t border-slate-100">
-        <p className="text-[10px] font-bold text-brand-navy uppercase tracking-[0.2em]">&copy; 2026 PT KALTIM KARIANGAU TERMINAL</p>
+        <p className="text-[10px] font-bold text-brand-navy uppercase tracking-[0.2em]">&copy; PT KALTIM KARIANGAU TERMINAL 2026</p>
       </footer>
 
       {role === UserRole.STAF && view === 'staff_dashboard' && (

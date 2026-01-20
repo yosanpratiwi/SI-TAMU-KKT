@@ -33,7 +33,7 @@ const Header: React.FC<HeaderProps> = ({ role, onToggleRole }) => {
           <div className="hidden lg:flex flex-col items-end border-r border-slate-200 pr-6">
             <div className="flex items-center gap-2 text-[#00339a]">
               <MapPin size={14} className="text-[#ee1c25]" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em]">LOBBY</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em]">LOBBY-Kaltim Kariangau Terminal</span>
             </div>
             <span className="text-[11px] font-extrabold text-slate-400 mt-0.5 italic">Sistem Informasi Tamu Digital</span>
           </div>

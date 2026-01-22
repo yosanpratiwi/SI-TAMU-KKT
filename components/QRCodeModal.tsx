@@ -30,7 +30,8 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({ onClose }) => {
   const handleDownload = () => {
     const link = document.createElement('a');
     link.href = qrUrl;
-    link.download = 'QR_CODE_TAMU_KKT.png';
+    // ini ntar diganti
+    link.download = 'QR_CODE_TAMU_KKT.png';  
     link.click();
   };
 

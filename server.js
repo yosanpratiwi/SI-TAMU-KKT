@@ -3,30 +3,21 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-// --- CONFIGURASI RENDER (WAJIB) ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const app = express();
-
-// Render akan memberikan PORT secara otomatis, jika tidak ada pakai 3000
-const PORT = process.env.PORT || 3000; 
-
+const PORT = 3002;
 const DB_FILE = './guests_db.json';
 const USERS_FILE = './users_db.json';
 
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 
-// MENGHUBUNGKAN FRONTEND: Agar file hasil 'npm run build' bisa dibaca
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// --- INISIALISASI DATABASE ---
+// Inisialisasi Database Tamu
 if (!fs.existsSync(DB_FILE)) {
   fs.writeFileSync(DB_FILE, JSON.stringify([]));
 }
 
+// Inisialisasi Database User Sekuriti
 if (!fs.existsSync(USERS_FILE)) {
   const defaultUsers = [
     { id: '1', username: 'admin', password: '123', name: 'Administrator IT', role: 'ADMIN' },
@@ -35,8 +26,7 @@ if (!fs.existsSync(USERS_FILE)) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
 }
 
-// --- LOGIKA WHATSAPP (FONNTE) ---
-const WHATSAPP_API_TOKEN = 'dWPXNHCioAhDWDW8X596';
+const WHATSAPP_API_TOKEN = 'pdKcCTfD7zmXZyRvj3bv';
 
 const formatPhoneForFonnte = (phone) => {
   if (!phone) return '';
@@ -46,19 +36,27 @@ const formatPhoneForFonnte = (phone) => {
   return cleaned;
 };
 
-// --- API ENDPOINTS ---
+app.get('/', (req, res) => {
+  res.send(`<h1 style="font-family:sans-serif;text-align:center;margin-top:50px;color:#00339a">SECUREGATE BACKEND ONLINE</h1>`);
+});
 
 // API Login Sekuriti
 app.post('/api/login', (req, res) => {
   try {
     const { username, password } = req.body;
     const users = JSON.parse(fs.readFileSync(USERS_FILE));
+    
     const user = users.find(u => u.username === username && u.password === password);
     
     if (user) {
       res.json({ 
         success: true, 
-        user: { id: user.id, username: user.username, name: user.name, role: user.role } 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          name: user.name, 
+          role: user.role 
+        } 
       });
     } else {
       res.status(401).json({ success: false, message: 'Username atau Password salah!' });
@@ -68,7 +66,6 @@ app.post('/api/login', (req, res) => {
   }
 });
 
-// API Simpan Tamu & Kirim WA
 app.post('/api/guests', async (req, res) => {
   try {
     const newGuest = req.body;
@@ -79,6 +76,8 @@ app.post('/api/guests', async (req, res) => {
     fs.writeFileSync(DB_FILE, JSON.stringify(dbData, null, 2));
 
     let waStatus = false;
+    let waResult = { message: 'Pending' };
+
     if (waPayload && waPayload.target) {
       const cleanedTarget = formatPhoneForFonnte(waPayload.target);
       try {
@@ -92,18 +91,26 @@ app.post('/api/guests', async (req, res) => {
             delay: '2'
           })
         });
-        const waResult = await response.json();
+
+        waResult = await response.json();
         waStatus = waResult.status === true;
-      } catch (e) { console.error("WA Error:", e); }
+      } catch (fetchError) {
+        waResult = { message: fetchError.message };
+      }
     }
 
-    res.json({ success: true, guest: guestData, waStatus: waStatus });
+    res.json({ 
+      success: true, 
+      guest: guestData, 
+      waStatus: waStatus,
+      backupMessage: waPayload ? waPayload.message : '',
+      targetPhone: waPayload ? waPayload.target : ''
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// API Ambil Data Tamu
 app.get('/api/guests', (req, res) => {
   try {
     const dbData = JSON.parse(fs.readFileSync(DB_FILE));
@@ -113,7 +120,6 @@ app.get('/api/guests', (req, res) => {
   }
 });
 
-// API Update Data Tamu
 app.put('/api/guests/:id', (req, res) => {
   try {
     const { id } = req.params;
@@ -127,12 +133,6 @@ app.put('/api/guests/:id', (req, res) => {
   }
 });
 
-// --- PENGATURAN ROUTING FRONTEND (WAJIB UNTUK DEPLOY) ---
-// Ini agar saat halaman di-refresh di HP, tidak muncul "Cannot GET /"
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
 app.listen(PORT, () => {
-  console.log(`SECUREGATE Server running on port ${PORT}`);
+  console.log(`SECUREGATE Backend running at http://localhost:${PORT}`);
 });

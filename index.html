@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SI-TAMU KKT - Kaltim Kariangau Terminal</title>
+    <title>SecureGate - Kaltim Kariangau Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
@@ -16,7 +16,8 @@
                 red: '#ee1c25',
                 green: '#009245',
                 dark: '#002673',
-                slate: '#f8fafc'
+                slate: '#f8fafc',
+                indigo: '#4f46e5'
               }
             },
             borderRadius: {
@@ -66,32 +67,24 @@
             body * {
                 visibility: hidden;
             }
-            #guest-pass-print, #guest-pass-print *,
-            #full-log-print, #full-log-print * {
+            #full-log-print, #full-log-print *,
+            #qr-poster-print, #qr-poster-print * {
                 visibility: visible;
             }
-            #guest-pass-print {
-                position: absolute;
-                left: 50%;
-                top: 50px;
-                transform: translateX(-50%);
-                width: 400px;
+            #qr-poster-print {
+                position: fixed;
+                inset: 0;
                 margin: 0;
-            }
-            #full-log-print {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            .page-break-inside-avoid {
-                page-break-inside: avoid;
+                padding: 2cm;
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                background: white;
             }
             @page {
-                size: auto;
-                margin: 1cm;
+                size: portrait;
+                margin: 0;
             }
         }
 
@@ -114,7 +107,14 @@
     "react": "https://esm.sh/react@^19.2.3",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
     "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "express": "https://esm.sh/express@^5.2.1",
+    "fs": "https://esm.sh/fs@^0.0.1-security",
+    "cors": "https://esm.sh/cors@^2.8.5",
+    "body-parser": "https://esm.sh/body-parser@^2.2.2",
+    "node-fetch": "https://esm.sh/node-fetch@^3.3.2",
+    "path": "https://esm.sh/path@^0.12.7",
+    "qrcode": "https://esm.sh/qrcode@^1.5.4"
   }
 }
 </script>

@@ -1,7 +1,6 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { GuestEntry, GuestStatus, UserRole, VisitType } from '../types';
-import { getManualWALink, sendWAAuto } from '../services/whatsapp';
-import { Search, PlusCircle, Clock, FileSpreadsheet, X, User, Send, Users, ArrowUpRight, ArrowDownRight, HardHat, CheckCircle2, AlertCircle, Building, ChevronDown, Calendar, MessageSquare, FileText, ExternalLink, Printer, Download, QrCode, FileDown, Trash2, MessageCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { GuestEntry, GuestStatus, UserRole } from '../types';
+import { Search, FileSpreadsheet, X, User, Users, ArrowUpRight, ArrowDownRight, Calendar, FileDown, Trash2, MessageCircle, FileText, Download } from 'lucide-react';
 
 interface GuestListProps {
   guests: GuestEntry[];
@@ -12,37 +11,26 @@ interface GuestListProps {
   onAddGuest?: () => void;
 }
 
-const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, onDelete, onResendNotification, role, onAddGuest }) => {
+const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, onDelete, onResendNotification, role }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedImage, setSelectedImage] = useState<{url: string, title: string, isPdf?: boolean} | null>(null);
-  const [printGuest, setPrintGuest] = useState<GuestEntry | null>(null);
-  const [isPrintingFullLog, setIsPrintingFullLog] = useState(false);
-
-  const getDisplayType = (type: string) => {
-    if (type === 'STANDARD') return 'UMUM';
-    return type;
-  };
-
-  const filteredByDate = useMemo(() => {
-    return guests.filter(g => {
-      if (!startDate && !endDate) return true;
-      const guestDate = g.tanggal;
-      if (startDate && guestDate < startDate) return false;
-      if (endDate && guestDate > endDate) return false;
-      return true;
-    });
-  }, [guests, startDate, endDate]);
 
   const filteredGuests = useMemo(() => {
-    return filteredByDate.filter(g => {
+    return guests.filter(g => {
       const term = searchTerm.toLowerCase();
-      return g.namaLengkap.toLowerCase().includes(term) ||
-             (g.asalInstansi || '').toLowerCase().includes(term) ||
-             g.tujuan.toLowerCase().includes(term);
+      const matchSearch = 
+        g.namaLengkap.toLowerCase().includes(term) || 
+        (g.asalInstansi || '').toLowerCase().includes(term) || 
+        (g.nomorKtp || '').includes(term);
+      
+      const guestDate = g.tanggal; // format YYYY-MM-DD
+      const matchDate = (!startDate || guestDate >= startDate) && (!endDate || guestDate <= endDate);
+      
+      return matchSearch && matchDate;
     });
-  }, [filteredByDate, searchTerm]);
+  }, [guests, searchTerm, startDate, endDate]);
 
   const stats = useMemo(() => {
     return {
@@ -58,7 +46,7 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, onDelete, onR
       'Tipe', 
       'Nama Tamu', 
       'Individu/Kelompok', 
-      'Nama Anggota', 
+      'Rombongan',
       'Nomor HP', 
       'Instansi/Perusahaan', 
       'NIK KTP', 
@@ -68,297 +56,285 @@ const GuestList: React.FC<GuestListProps> = ({ guests, onCheckout, onDelete, onR
       'Jam Masuk', 
       'Jam Keluar'
     ];
-    
-    const rows = filteredGuests.map(g => {
-        const tipeKunjungan = g.isGroup ? 'KELOMPOK' : 'INDIVIDU';
-        const namaAnggota = g.isGroup && g.groupMembers && g.groupMembers.length > 0 
-          ? `"${g.groupMembers.join('; ')}"` 
-          : '"-"';
 
-        return [
-          `"${g.tanggal}"`, 
-          getDisplayType(g.visitType), 
-          `"${g.namaLengkap}"`, 
-          tipeKunjungan,
-          namaAnggota,
-          `"${g.nomorHp}"`, 
-          `"${g.asalInstansi || 'Pribadi'}"`, 
-          `"${g.nomorKtp}"`, 
-          `"${g.penanggungJawab}"`, 
-          `"${g.divisi}"`, 
-          `"${g.keperluan}"`, 
-          g.jamMasuk, 
-          g.jamKeluar || '-'
-        ];
-    });
+    const rows = filteredGuests.map(g => [
+      `"${g.tanggal}"`,
+      `"${g.visitType}"`,
+      `"${g.namaLengkap}"`,
+      `"${g.isGroup ? 'KELOMPOK' : 'INDIVIDU'}"`,
+      `"${g.isGroup ? g.groupMembers.join('; ') : '-'}"`,
+      `="${g.nomorHp}"`,
+      `="${g.asalInstansi}"`,
+      `="${g.nomorKtp}"`,
+      `="${g.penanggungJawab}"`,
+      `="${g.divisi || '-'}"`,
+      `"${g.keperluan}"`,
+      `"${g.jamMasuk}"`,
+      `"${g.jamKeluar || '-'}"`
+    ]);
 
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `Laporan_Log_Tamu_KKT_${new Date().getTime()}.csv`;
+    link.download = `Log_Tamu_KKT_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
   const handlePrintFullLog = () => {
-    setPrintGuest(null);
-    setIsPrintingFullLog(true);
-    setTimeout(() => { window.print(); setIsPrintingFullLog(false); }, 500);
-  };
-
-  const handlePrintPass = (guest: GuestEntry) => {
-    setIsPrintingFullLog(false);
-    setPrintGuest(guest);
-    setTimeout(() => { window.print(); setPrintGuest(null); }, 500);
+    window.print();
   };
 
   return (
-    <div className="flex flex-col bg-slate-50 min-h-[600px] rounded-3xl md:rounded-[4rem] overflow-hidden">
+    <div className="flex flex-col bg-slate-50 min-h-[800px] rounded-[4rem] overflow-hidden">
       
-      {/* PDF PRINT TEMPLATE - KONFIGURASI 13 KOLOM SESUAI PERMINTAAN */}
-      {isPrintingFullLog && (
-        <div id="full-log-print" className="hidden print:block fixed inset-0 bg-white z-[9999] p-4 overflow-visible">
-          <div className="flex items-center justify-between border-b-4 border-brand-navy pb-4 mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-brand-navy rounded-xl flex items-center justify-center text-white font-black text-xs">KKT</div>
-              <div>
-                <h1 className="text-xl font-black text-brand-navy uppercase tracking-tighter">PT KALTIM KARIANGAU TERMINAL</h1>
-                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em]">LAPORAN LOG BUKU TAMU DIGITAL (SI-TAMU)</p>
-              </div>
+      {/* AREA KHUSUS PRINT PDF (TIDAK MUNCUL DI LAYAR) */}
+      <div id="full-log-print" className="hidden print:block p-8 bg-white min-h-screen font-sans">
+        <div className="flex items-center justify-between border-b-4 border-brand-navy pb-6 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="bg-brand-navy p-3 rounded-xl text-white">
+              <Users size={30} />
             </div>
-            <div className="text-right">
-              <p className="text-[8px] font-black text-slate-400 uppercase">Status Laporan:</p>
-              <p className="text-[10px] font-black text-brand-navy uppercase">DOKUMEN RESMI SISTEM</p>
+            <div>
+              <h1 className="text-2xl font-[900] text-brand-navy uppercase tracking-tighter italic">SECUREGATE ENTERPRISE</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Log Laporan Kunjungan Tamu Digital</p>
             </div>
           </div>
+          <div className="text-right">
+            <h2 className="text-[14px] font-[900] text-brand-navy uppercase">KALTIM KARIANGAU TERMINAL</h2>
+            <p className="text-[10px] font-bold text-slate-400 italic">Handal, Tepat waktu dan Efisien</p>
+            <p className="text-[9px] font-black text-slate-900 mt-1 uppercase tracking-wider">DICETAK: {new Date().toLocaleString('id-ID')} WITA</p>
+          </div>
+        </div>
 
-          <table className="w-full border-collapse text-[7px] leading-tight">
-            <thead>
-              <tr className="bg-slate-100">
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">Tanggal</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase">Nama Tamu</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">Nomor HP</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase">Instansi/Perusahaan</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">NIK KTP</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase">Nama Pegawai</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase">Divisi</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase">Keperluan</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">Jam Masuk</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">Jam Keluar</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">Foto Identitas</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">Foto KTP</th>
-                <th className="border border-slate-300 p-1.5 font-black uppercase text-center">File K3/Surat Izin Kerja</th>
+        <table className="w-full border-collapse border border-slate-400 table-fixed">
+          <thead>
+            <tr className="bg-slate-100">
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase w-[30px]">NO</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-left w-[110px]">TANGGAL & WAKTU</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-left">NAMA TAMU</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-left">NIK (KTP)</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-left">INSTANSI</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-left">KEPERLUAN</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-left">PEGAWAI DITUJU</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-center w-[75px]">DOC K3</th>
+              <th className="border border-slate-400 p-2 text-[9px] font-[900] uppercase text-center w-[75px]">UNDANGAN</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredGuests.map((g, idx) => (
+              <tr key={g.id} className="text-[9px] font-bold text-slate-800 leading-tight">
+                <td className="border border-slate-400 p-2 text-center">{idx + 1}</td>
+                <td className="border border-slate-400 p-2">
+                  <span className="block font-black">{g.tanggal}</span>
+                  <span className="text-emerald-600 block">IN: {g.jamMasuk}</span>
+                  <span className="text-brand-red block">OUT: {g.jamKeluar || '--:--'}</span>
+                </td>
+                <td className="border border-slate-400 p-2 font-black uppercase break-words">{g.namaLengkap}</td>
+                <td className="border border-slate-400 p-2 font-mono break-all">{g.nomorKtp}</td>
+                <td className="border border-slate-400 p-2 uppercase break-words">{g.asalInstansi}</td>
+                <td className="border border-slate-400 p-2 italic break-words">"{g.keperluan}"</td>
+                <td className="border border-slate-400 p-2 uppercase break-words">{g.penanggungJawab}</td>
+                <td className="border border-slate-400 p-2 text-center">
+                  {g.k3Pdf ? (
+                    <a href={g.k3Pdf} target="_blank" className="text-brand-navy underline font-black break-all">(Lihat disini)</a>
+                  ) : '-'}
+                </td>
+                <td className="border border-slate-400 p-2 text-center">
+                  {g.suratUndangan ? (
+                    <a href={g.suratUndangan} target="_blank" className="text-brand-navy underline font-black break-all">(Lihat disini)</a>
+                  ) : '-'}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredGuests.map((g) => (
-                <tr key={g.id} className="page-break-inside-avoid">
-                  <td className="border border-slate-300 p-1 align-middle text-center">{g.tanggal}</td>
-                  <td className="border border-slate-300 p-1 align-middle">
-                    <div className="font-black">{g.namaLengkap}</div>
-                    {g.isGroup && g.groupMembers && g.groupMembers.length > 0 && (
-                      <div className="text-[6px] text-slate-500 italic mt-0.5">Anggota: {g.groupMembers.join(', ')}</div>
-                    )}
-                  </td>
-                  <td className="border border-slate-300 p-1 align-middle text-center">{g.nomorHp}</td>
-                  <td className="border border-slate-300 p-1 align-middle">{g.asalInstansi || '(-)'}</td>
-                  <td className="border border-slate-300 p-1 align-middle text-center">{g.nomorKtp}</td>
-                  <td className="border border-slate-300 p-1 align-middle font-bold text-brand-navy">{g.penanggungJawab}</td>
-                  <td className="border border-slate-300 p-1 align-middle uppercase">{g.divisi}</td>
-                  <td className="border border-slate-300 p-1 align-middle uppercase">{g.keperluan}</td>
-                  <td className="border border-slate-300 p-1 align-middle text-center font-black">{g.jamMasuk}</td>
-                  <td className="border border-slate-300 p-1 align-middle text-center font-black text-brand-red">{g.jamKeluar || '(-)'}</td>
-                  <td className="border border-slate-300 p-1 align-middle text-center">
-                    {g.fotoTamu ? (
-                      <img src={g.fotoTamu} className="w-8 h-8 object-cover mx-auto border border-slate-200" alt="Face" />
-                    ) : '(-)'}
-                  </td>
-                  <td className="border border-slate-300 p-1 align-middle text-center">
-                    {g.fotoKTP ? (
-                      <img src={g.fotoKTP} className="w-10 h-6 object-cover mx-auto border border-slate-200" alt="KTP" />
-                    ) : '(-)'}
-                  </td>
-                  <td className="border border-slate-300 p-1 align-middle text-center">
-                    {g.k3Pdf ? (
-                      <a href={g.k3Pdf} target="_blank" rel="noopener noreferrer" className="text-brand-navy font-black underline">Lihat disini</a>
-                    ) : '(-)'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="mt-8 flex justify-between px-10">
-            <div className="text-center">
-              <p className="text-[8px] font-black uppercase text-slate-400 mb-10">Dibuat Oleh,</p>
-              <p className="text-[9px] font-black text-slate-900 uppercase underline">Petugas Sekuriti</p>
-            </div>
-            <div className="text-center">
-              <p className="text-[8px] font-black uppercase text-slate-400 mb-10">Mengetahui,</p>
-              <p className="text-[9px] font-black text-slate-900 uppercase underline">Penanggung Jawab Gate</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {printGuest && (
-        <div id="guest-pass-print" className="hidden print:block fixed inset-0 bg-white z-[9999] p-10">
-          <div className="max-w-[400px] mx-auto border-4 border-brand-navy rounded-[2rem] overflow-hidden">
-             <div className="bg-brand-navy p-6 text-white text-center">
-                <p className="text-[10px] font-black tracking-[0.4em] mb-1 uppercase">PT KALTIM KARIANGAU TERMINAL</p>
-                <h2 className="text-2xl font-black italic">VISITOR PASS</h2>
-             </div>
-             <div className="p-8 space-y-6 flex flex-col items-center text-center">
-                <div className="w-40 h-40 bg-slate-100 rounded-3xl border-4 border-slate-200 overflow-hidden">
-                   {printGuest.fotoTamu ? <img src={printGuest.fotoTamu} className="w-full h-full object-cover" /> : <User size={60} className="m-auto mt-10 text-slate-300" />}
-                </div>
-                <div>
-                   <h3 className="text-2xl font-black text-brand-navy tracking-tight">{printGuest.namaLengkap}</h3>
-                   <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">{printGuest.asalInstansi || 'Pribadi'}</p>
-                </div>
-                <div className="w-full grid grid-cols-2 gap-4 border-y border-slate-100 py-6">
-                   <div><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Waktu Masuk</p><p className="text-xs font-black text-brand-navy">{printGuest.jamMasuk} WITA</p></div>
-                   <div><p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pegawai</p><p className="text-xs font-black text-brand-navy truncate">{printGuest.penanggungJawab}</p></div>
-                </div>
-                <QrCode size={40} className="text-brand-navy" />
-             </div>
-             <div className="h-4 w-full bg-emerald-500"></div>
-          </div>
-        </div>
-      )}
-
-      {/* STATS AREA */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 p-6 md:p-8">
-        <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200/60 flex items-center justify-between group hover:shadow-lg transition-all">
-            <div><p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Tamu</p><h4 className="text-3xl md:text-4xl font-black text-brand-navy leading-none">{stats.total}</h4></div>
-            <div className="bg-brand-navy/5 p-4 md:p-5 rounded-2xl md:rounded-3xl text-brand-navy"><Users size={24} /></div>
-        </div>
-        <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200/60 flex items-center justify-between group hover:shadow-lg transition-all">
-            <div><p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Di Area</p><h4 className="text-3xl md:text-4xl font-black text-emerald-600 leading-none">{stats.inArea}</h4></div>
-            <div className="bg-emerald-50 p-4 md:p-5 rounded-2xl md:rounded-3xl text-emerald-600"><ArrowUpRight size={24} /></div>
-        </div>
-        <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200/60 flex items-center justify-between group hover:shadow-lg transition-all">
-            <div><p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Checkout</p><h4 className="text-3xl md:text-4xl font-black text-brand-red leading-none">{stats.out}</h4></div>
-            <div className="bg-red-50 p-4 md:p-5 rounded-2xl md:rounded-3xl text-brand-red"><ArrowDownRight size={24} /></div>
+            ))}
+          </tbody>
+        </table>
+        
+        <div className="mt-12 flex justify-end">
+           <div className="text-center w-52 border-t border-slate-300 pt-3">
+              <p className="text-[9px] font-black uppercase mb-12 text-slate-400 tracking-widest">Petugas Keamanan</p>
+              <p className="text-[11px] font-[900] text-brand-navy uppercase tracking-tighter">( ............................ )</p>
+           </div>
         </div>
       </div>
 
-      {/* SEARCH AND FILTERS */}
-      <div className="mx-4 md:mx-8 mb-6 md:mb-8 p-5 md:p-6 bg-white rounded-2xl md:rounded-[2rem] shadow-sm border border-slate-200/60 flex flex-col xl:flex-row items-center justify-between gap-6">
-        <div className="relative w-full xl:max-w-md">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-            <input type="text" placeholder="Cari nama tamu / instansi..." className="w-full pl-14 pr-6 py-3.5 bg-slate-50 rounded-xl border-2 border-transparent focus:border-brand-navy focus:bg-white outline-none text-sm font-bold transition-all" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+      {/* STATS AREA (HIDDEN IN PRINT) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 p-12 print:hidden">
+        <div className="bg-white p-10 rounded-[3rem] shadow-md border-b-[6px] border-brand-navy flex items-center justify-between">
+            <div><p className="text-[12px] font-[900] text-slate-500 uppercase tracking-widest mb-2">Total Tamu</p><h4 className="text-5xl font-[900] text-brand-navy tracking-tighter">{stats.total}</h4></div>
+            <div className="bg-brand-navy/10 p-5 rounded-[2rem] text-brand-navy"><Users size={32} /></div>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-            <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl border border-slate-200 w-full sm:w-auto">
-                <input type="date" className="bg-white border-none rounded-lg px-3 py-1.5 text-[10px] font-black outline-none" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                <span className="text-slate-300">s/d</span>
-                <input type="date" className="bg-white border-none rounded-lg px-3 py-1.5 text-[10px] font-black outline-none" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-                <button onClick={handlePrintFullLog} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-brand-navy text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-brand-red transition-all shadow-lg active:scale-95">
-                    <FileDown size={16} /> DOWNLOAD PDF LOG
-                </button>
-                <button onClick={exportData} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-slate-600 border border-slate-200 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all group active:scale-95">
-                    <FileSpreadsheet size={16} className="text-emerald-600 group-hover:text-white" /> EXCEL
-                </button>
-            </div>
+        <div className="bg-white p-10 rounded-[3rem] shadow-md border-b-[6px] border-emerald-500 flex items-center justify-between">
+            <div><p className="text-[12px] font-[900] text-slate-500 uppercase tracking-widest mb-2">Di Area</p><h4 className="text-5xl font-[900] text-emerald-600 tracking-tighter">{stats.inArea}</h4></div>
+            <div className="bg-emerald-50 p-5 rounded-[2rem] text-emerald-600"><ArrowUpRight size={32} /></div>
+        </div>
+        <div className="bg-white p-10 rounded-[3rem] shadow-md border-b-[6px] border-brand-red flex items-center justify-between">
+            <div><p className="text-[12px] font-[900] text-slate-500 uppercase tracking-widest mb-2">Keluar</p><h4 className="text-5xl font-[900] text-brand-red tracking-tighter">{stats.out}</h4></div>
+            <div className="bg-red-50 p-5 rounded-[2rem] text-brand-red"><ArrowDownRight size={32} /></div>
         </div>
       </div>
 
-      {/* DATA TABLE */}
-      <div className="px-4 md:px-8 pb-8">
-        <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-sm border border-slate-200/60 overflow-x-auto scrollbar-hide">
-            <table className="w-full text-left border-collapse min-w-[1200px]">
-                <thead>
-                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                        <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu Kedatangan</th>
-                        <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Tamu & Instansi</th>
-                        <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Keperluan & Staf</th>
-                        <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Catatan Staf</th>
-                        <th className="px-6 md:px-10 py-6 text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Status & Aksi</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                    {filteredGuests.length === 0 ? (
-                        <tr><td colSpan={5} className="py-24 text-center text-slate-300 font-black uppercase tracking-widest text-xs">Belum ada data yang tercatat dalam sistem</td></tr>
-                    ) : (
-                        filteredGuests.map((guest) => (
-                            <tr key={guest.id} className="hover:bg-slate-50/30 transition-all group">
-                                <td className="px-6 md:px-10 py-6 md:py-8">
-                                    <div className="flex flex-col gap-1.5">
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-brand-navy"><Clock size={12} className="text-brand-red" /> {guest.jamMasuk} WITA</div>
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500"><Calendar size={12} className="text-slate-400" /> {guest.tanggal}</div>
-                                        {guest.jamKeluar && <div className="text-[9px] font-black text-brand-red uppercase">Checkout: {guest.jamKeluar}</div>}
-                                    </div>
-                                </td>
-                                <td className="px-6 md:px-10 py-6 md:py-8">
-                                    <div className="flex items-start gap-4">
-                                        <div className="relative h-12 w-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden cursor-pointer shrink-0" onClick={() => guest.fotoTamu && setSelectedImage({url: guest.fotoTamu, title: guest.namaLengkap})}>
-                                            {guest.fotoTamu ? <img src={guest.fotoTamu} className="w-full h-full object-cover" /> : <User size={20} className="m-auto mt-3 text-slate-300" />}
-                                        </div>
-                                        <div className="min-w-0">
-                                            <div className="font-black text-brand-navy text-sm truncate">{guest.namaLengkap}</div>
-                                            <div className="text-[9px] font-bold text-slate-400 italic mb-1">{guest.asalInstansi || 'Pribadi'} ({getDisplayType(guest.visitType)})</div>
-                                            {guest.isGroup && <div className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 w-fit">KELOMPOK (+{guest.groupMembers.length})</div>}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 md:px-10 py-6 md:py-8">
-                                    <div className="text-[11px] font-black text-slate-700 uppercase">{guest.keperluan}</div>
-                                    <div className="text-[9px] font-bold text-brand-navy/60 uppercase">Tujuan: {guest.penanggungJawab} ({guest.divisi})</div>
-                                </td>
-                                <td className="px-6 md:px-10 py-6 md:py-8">
-                                    {guest.catatan ? (
-                                        <div className="bg-indigo-50 border border-indigo-100 p-2 rounded-lg text-[9px] font-bold text-indigo-700 italic">"{guest.catatan}"</div>
-                                    ) : ( <span className="text-[9px] font-bold text-slate-300 italic">Belum ada catatan konfirmasi</span> )}
-                                </td>
-                                <td className="px-6 md:px-10 py-6 md:py-8 text-center">
-                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                                        <div className="flex items-center gap-2">
-                                            {guest.status === GuestStatus.DIIZINKAN ? (
-                                                <span className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase border border-emerald-100">DISETUJUI</span>
-                                            ) : guest.status === GuestStatus.DITOLAK ? (
-                                                <span className="bg-red-50 text-brand-red px-3 py-1.5 rounded-lg text-[8px] font-black uppercase border border-red-100">DITOLAK</span>
-                                            ) : (
-                                                <div className="flex flex-col gap-2">
-                                                    <span className="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase border border-amber-100 mb-1">MENUNGGU KONFIRMASI</span>
-                                                    {role === UserRole.SEKURITI && (
-                                                        <button 
-                                                            onClick={() => onResendNotification && onResendNotification(guest.id)} 
-                                                            className="flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500 text-white rounded-lg font-black text-[8px] uppercase hover:bg-emerald-600 transition-all shadow-md active:scale-95"
-                                                            title="Kirim Ulang Notifikasi WA ke Staf"
-                                                        >
-                                                            <MessageCircle size={12} /> KIRIM ULANG
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                        
-                                        <div className="flex items-center gap-1 border-l border-slate-200 pl-3">
-                                            {!guest.jamKeluar && guest.status === GuestStatus.DIIZINKAN && (
-                                                <button onClick={() => onCheckout(guest.id)} className="px-3 py-1.5 bg-brand-navy text-white text-[8px] font-black uppercase rounded-lg hover:bg-brand-red transition-all">OUT</button>
-                                            )}
-                                            {role === UserRole.SEKURITI && (
-                                                <button onClick={() => onDelete && window.confirm('Hapus data buku tamu ini?') && onDelete(guest.id)} className="p-2 text-slate-300 hover:text-brand-red transition-colors" title="Hapus"><Trash2 size={14} /></button>
-                                            )}
-                                            <button onClick={() => handlePrintPass(guest)} className="p-2 text-slate-300 hover:text-brand-navy transition-colors" title="Cetak Kartu Tamu"><Printer size={14} /></button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
+      {/* SEARCH & FILTER ACTIONS (HIDDEN IN PRINT) */}
+      <div className="mx-12 mb-10 p-10 bg-white rounded-[3rem] shadow-lg flex flex-col gap-10 border border-slate-200 print:hidden">
+        <div className="flex flex-col xl:flex-row items-center justify-between gap-8">
+            <div className="relative w-full xl:max-w-xl">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-brand-navy" size={24} />
+                <input type="text" placeholder="Cari nama, instansi, atau NIK tamu..." className="w-full pl-16 pr-8 py-5.5 bg-slate-100 rounded-[2rem] outline-none font-black text-base focus:ring-4 focus:ring-brand-navy/10 focus:bg-white transition-all border-2 border-slate-100" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
+                <div className="flex items-center gap-3 bg-slate-100 px-6 py-4 rounded-[2rem] border-2 border-slate-100 focus-within:bg-white focus-within:border-brand-navy transition-all">
+                    <Calendar size={18} className="text-brand-navy" />
+                    <input type="date" className="bg-transparent outline-none font-[900] text-[12px] text-brand-navy uppercase" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </div>
+                <div className="text-slate-300 font-black">s/d</div>
+                <div className="flex items-center gap-3 bg-slate-100 px-6 py-4 rounded-[2rem] border-2 border-slate-100 focus-within:bg-white focus-within:border-brand-navy transition-all">
+                    <Calendar size={18} className="text-brand-navy" />
+                    <input type="date" className="bg-transparent outline-none font-[900] text-[12px] text-brand-navy uppercase" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+            </div>
+        </div>
+
+        <div className="flex gap-5 justify-end">
+            <button onClick={handlePrintFullLog} className="px-12 py-5.5 bg-brand-navy text-white rounded-[2rem] font-[900] text-[13px] uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:shadow-2xl transition-all hover:bg-brand-dark">
+                <FileDown size={24} /> (PDF)
+            </button>
+            <button onClick={exportData} className="px-12 py-5.5 bg-emerald-600 text-white rounded-[2rem] font-[900] text-[13px] uppercase tracking-[0.2em] flex items-center justify-center gap-4 hover:shadow-2xl transition-all hover:bg-emerald-700">
+                <FileSpreadsheet size={24} /> EXCEL
+            </button>
         </div>
       </div>
 
+      {/* DATA TABLE UI (HIDDEN IN PRINT) */}
+      <div className="px-12 pb-16 overflow-x-auto print:hidden">
+        <table className="w-full border-collapse min-w-[1800px] bg-white rounded-[3rem] shadow-sm overflow-hidden">
+          <thead>
+            <tr className="bg-brand-navy text-left">
+              <th className="px-10 py-8 text-[12px] font-[900] text-white uppercase tracking-[0.3em] border-r border-white/10">WAKTU</th>
+              <th className="px-10 py-8 text-[12px] font-[900] text-white uppercase tracking-[0.3em] border-r border-white/10">PROFIL TAMU</th>
+              <th className="px-10 py-8 text-[12px] font-[900] text-white uppercase tracking-[0.3em] border-r border-white/10">TUJUAN & KEPERLUAN</th>
+              <th className="px-10 py-8 text-[12px] font-[900] text-white uppercase tracking-[0.3em] text-center border-r border-white/10">DOKUMEN</th>
+              <th className="px-10 py-8 text-[12px] font-[900] text-white uppercase tracking-[0.3em]">STATUS</th>
+              <th className="px-10 py-8 text-[12px] font-[900] text-white uppercase tracking-[0.3em] text-center">AKSI</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y-2 divide-slate-100">
+            {filteredGuests.length === 0 ? (
+                <tr><td colSpan={6} className="py-32 text-center font-black text-slate-300 uppercase tracking-[0.5em] text-lg">Tidak ada data ditemukan</td></tr>
+            ) : (
+                filteredGuests.map(guest => (
+                  <tr key={guest.id} className="hover:bg-slate-50 transition-all group">
+                    <td className="px-10 py-10 border-r border-slate-100">
+                      <div className="space-y-3">
+                          <div className="text-[13px] font-black text-emerald-600 flex items-center gap-3 bg-emerald-50 py-1.5 px-4 rounded-xl w-fit border border-emerald-100 italic">
+                            IN: {guest.jamMasuk} WITA
+                          </div>
+                          {guest.jamKeluar ? (
+                              <div className="text-[13px] font-black text-brand-red flex items-center gap-3 bg-red-50 py-1.5 px-4 rounded-xl w-fit border border-red-100 italic">
+                                OUT: {guest.jamKeluar} WITA
+                              </div>
+                          ) : (
+                              <div className="text-[11px] font-black text-slate-400 uppercase italic pl-4">Aktif di kantor</div>
+                          )}
+                          <div className="text-[11px] font-black text-slate-900 pt-3 flex items-center gap-2 border-t-2 border-slate-100 mt-2">
+                            <Calendar size={14} className="text-brand-navy" /> {guest.tanggal}
+                          </div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-10 border-r border-slate-100">
+                      <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 rounded-[2rem] bg-slate-200 overflow-hidden shrink-0 border-4 border-white shadow-xl cursor-pointer hover:scale-110 transition-all" onClick={() => guest.fotoTamu && setSelectedImage({url: guest.fotoTamu, title: guest.namaLengkap})}>
+                           {guest.fotoTamu ? <img src={guest.fotoTamu} className="w-full h-full object-cover" /> : <User size={32} className="m-auto mt-6 text-slate-400" />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-[900] text-[18px] text-slate-900 truncate mb-1 uppercase tracking-tight">{guest.namaLengkap}</div>
+                          <div className="text-[12px] font-black text-brand-navy uppercase italic tracking-widest bg-brand-navy/5 px-3 py-1 rounded-lg w-fit">
+                            {guest.asalInstansi || 'Perorangan'}
+                          </div>
+                          <div className="mt-1 text-[11px] font-black text-slate-500 font-mono tracking-tight">NIK: {guest.nomorKtp}</div>
+                          {guest.isGroup && <div className="mt-2 text-[10px] font-black text-white bg-brand-navy px-4 py-1.5 rounded-full w-fit shadow-md">ROMBONGAN (+{guest.groupMembers.length})</div>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-10 border-r border-slate-100">
+                      <div className="text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase italic tracking-tight underline decoration-brand-navy/20 underline-offset-4">{guest.keperluan}</div>
+                      <div className="text-[11px] font-[900] text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                        DITUJU: <span className="text-brand-navy">{guest.penanggungJawab}</span>
+                      </div>
+                      <div className="text-[10px] font-bold text-slate-400 mt-1">Divisi: {guest.divisi}</div>
+                    </td>
+                    
+                    <td className="px-10 py-10 text-center border-r border-slate-100">
+                      <div className="flex justify-center gap-4">
+                        {guest.suratUndangan && (
+                          <button onClick={() => setSelectedImage({url: guest.suratUndangan!, title: 'Surat Undangan', isPdf: guest.suratUndangan!.startsWith('data:application/pdf')})} className="p-4 bg-blue-50 text-brand-navy rounded-[1.5rem] hover:bg-brand-navy hover:text-white transition-all border-2 border-blue-100 shadow-sm" title="Surat Undangan">
+                            <FileText size={24} />
+                          </button>
+                        )}
+                        {guest.k3Pdf && (
+                          <button onClick={() => setSelectedImage({url: guest.k3Pdf!, title: 'Dokumen K3', isPdf: guest.k3Pdf!.startsWith('data:application/pdf')})} className="p-4 bg-red-50 text-brand-red rounded-[1.5rem] hover:bg-brand-red hover:text-white transition-all border-2 border-red-100 shadow-sm" title="Surat K3">
+                            <FileText size={24} />
+                          </button>
+                        )}
+                        {!guest.suratUndangan && !guest.k3Pdf && <span className="text-slate-200 font-black">--</span>}
+                      </div>
+                    </td>
+
+                    <td className="px-10 py-10 border-r border-slate-100">
+                        <div className="flex flex-col gap-3">
+                            {guest.status === GuestStatus.PENDING ? (
+                                <span className="bg-amber-100 text-amber-700 px-6 py-2 rounded-full text-[11px] font-[900] border-2 border-amber-200 uppercase tracking-widest w-fit animate-pulse">PENDING</span>
+                            ) : (
+                                <span className={`px-6 py-2 rounded-full text-[11px] font-[900] border-2 uppercase tracking-widest w-fit ${guest.status === GuestStatus.DIIZINKAN ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-red-100 text-brand-red border-red-200'}`}>
+                                    {guest.status === GuestStatus.DIIZINKAN ? 'DISETUJUI' : 'DITOLAK'}
+                                </span>
+                            )}
+                            {guest.catatan && (
+                                <div className="text-[11px] font-bold text-slate-900 bg-slate-100 p-3 rounded-xl italic leading-relaxed">"{guest.catatan}"</div>
+                            )}
+                        </div>
+                    </td>
+
+                    <td className="px-10 py-10 text-center">
+                      <div className="flex items-center justify-center gap-4">
+                        {role === UserRole.SEKURITI && guest.status === GuestStatus.PENDING && (
+                           <button onClick={() => onResendNotification?.(guest.id)} className="bg-emerald-500 text-white p-4 rounded-[1.5rem] hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all active:scale-90"><MessageCircle size={24} /></button>
+                        )}
+                        {!guest.jamKeluar && guest.status === GuestStatus.DIIZINKAN && (
+                           <button onClick={() => onCheckout(guest.id)} className="bg-brand-navy text-white px-8 py-4 text-[12px] font-[900] rounded-[1.5rem] hover:bg-brand-red transition-all shadow-xl active:scale-95">CHECK-OUT</button>
+                        )}
+                        {role === UserRole.SEKURITI && (
+                           <button onClick={() => onDelete?.(guest.id)} className="p-4 text-slate-300 hover:text-brand-red hover:bg-red-50 rounded-[1.5rem] transition-all"><Trash2 size={24} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PREVIEW MODAL */}
       {selectedImage && (
-        <div className="fixed inset-0 bg-brand-navy/95 backdrop-blur-xl z-[400] flex items-center justify-center p-6" onClick={() => setSelectedImage(null)}>
-          <div className="relative max-w-5xl w-full h-[80vh] bg-white p-2 rounded-3xl" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setSelectedImage(null)} className="absolute -top-12 right-0 text-white"><X size={28} /></button>
-            <img src={selectedImage.url} className="w-full h-full object-contain rounded-2xl" />
+        <div className="fixed inset-0 bg-slate-900/98 backdrop-blur-2xl z-[600] flex items-center justify-center p-12 print:hidden" onClick={() => setSelectedImage(null)}>
+          <div className="relative max-w-7xl w-full h-full bg-white p-4 rounded-[4rem] shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-10 border-b-2 border-slate-100 flex items-center justify-between">
+               <h3 className="text-[20px] font-[900] text-brand-navy uppercase tracking-[0.3em] italic">{selectedImage.title}</h3>
+               <button onClick={() => setSelectedImage(null)} className="p-4 text-slate-400 hover:text-brand-red hover:bg-red-50 rounded-full transition-all"><X size={40} /></button>
+            </div>
+            <div className="flex-grow overflow-hidden p-10 bg-slate-100 rounded-[3rem] mx-4 mb-4">
+              {selectedImage.isPdf ? (
+                <iframe src={selectedImage.url} className="w-full h-full border-none rounded-3xl shadow-2xl" title={selectedImage.title} />
+              ) : (
+                <img src={selectedImage.url} className="w-full h-full object-contain rounded-3xl" alt={selectedImage.title} />
+              )}
+            </div>
+            <div className="p-10 border-t-2 border-slate-100 flex justify-end">
+               <a href={selectedImage.url} download={selectedImage.title} className="bg-brand-navy text-white px-14 py-6 rounded-3xl font-[900] text-[14px] uppercase tracking-[0.4em] flex items-center gap-5 shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                  <Download size={26} /> DOWNLOAD FILE
+               </a>
+            </div>
           </div>
         </div>
       )}

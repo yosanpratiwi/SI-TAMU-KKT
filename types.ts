@@ -31,6 +31,7 @@ export interface GuestEntry {
   fotoTamu?: string;
   fotoKTP?: string;
   k3Pdf?: string; 
+  suratUndangan?: string;
 
   tujuan: string;
   divisi: string;

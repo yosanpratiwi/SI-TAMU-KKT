@@ -1,7 +1,8 @@
+
 import React, { useState, useRef } from 'react';
 import { GuestStatus, UserRole, GuestEntry, VisitType } from '../types';
 import CameraCapture from './CameraCapture';
-import { User, Building, Phone, CreditCard, Target, Settings, MapPin, HardHat, Briefcase, Info, ChevronRight, Users, Trash2, FileText, Upload, CheckCircle2, MessageSquare, Calendar, AlertCircle } from 'lucide-react';
+import { User, Building, Phone, CreditCard, Target, Settings, MapPin, Briefcase, Info, ChevronRight, Users, Trash2, Upload, ClipboardList, MessageSquare, Plus } from 'lucide-react';
 
 interface GuestFormProps {
   onSubmit: (entry: Omit<GuestEntry, 'id' | 'jamKeluar' | 'status'>) => void;
@@ -9,10 +10,9 @@ interface GuestFormProps {
 }
 
 const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
+  const k3InputRef = useRef<HTMLInputElement>(null);
+  const inviteInputRef = useRef<HTMLInputElement>(null);
   const today = new Date().toISOString().split('T')[0];
-  const displayDate = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const [formData, setFormData] = useState({
     tanggal: today,
@@ -28,6 +28,7 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
     fotoTamu: '',
     fotoKTP: '',
     k3Pdf: '',
+    suratUndangan: '',
     tujuan: '', 
     divisi: '',
     nomorHpPJ: '', 
@@ -38,32 +39,12 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handlePhoneFocus = (field: 'nomorHp' | 'nomorHpPJ') => {
-    if (!formData[field]) {
-      setFormData(prev => ({ ...prev, [field]: '+62' }));
-    }
-  };
-
-  const handlePhoneBlur = (field: 'nomorHp' | 'nomorHpPJ') => {
-    if (formData[field] === '+62') {
-      setFormData(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
   const handlePhoneChange = (field: 'nomorHp' | 'nomorHpPJ', value: string) => {
     let clean = value.replace(/[^+0-9]/g, '');
-    
-    if (!clean) {
-      setFormData(prev => ({ ...prev, [field]: '' }));
-      return;
-    }
-
-    if (!clean.startsWith('+62')) {
+    if (!clean.startsWith('+62') && clean.length > 0) {
       if (clean.startsWith('0')) clean = clean.slice(1);
-      else if (clean.startsWith('62')) clean = clean.slice(2);
-      clean = '+62' + clean.replace(/\+/g, '');
+      clean = '+62' + clean;
     }
-
     setFormData(prev => ({ ...prev, [field]: clean }));
   };
 
@@ -84,7 +65,7 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
     });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'k3Pdf' | 'suratUndangan') => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -93,7 +74,7 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, k3Pdf: reader.result as string });
+        setFormData({ ...formData, [field]: reader.result as string });
       };
       reader.readAsDataURL(file);
     }
@@ -101,245 +82,263 @@ const GuestForm: React.FC<GuestFormProps> = ({ onSubmit, role }) => {
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.namaLengkap.trim()) newErrors.namaLengkap = 'Nama tamu wajib diisi.';
-    if (!formData.asalInstansi.trim()) newErrors.asalInstansi = 'Asal instansi/perusahaan wajib diisi.';
-    
-    const cleanHp = formData.nomorHp.replace(/\+/g, '');
-    if (!formData.nomorHp.trim() || cleanHp === '62') newErrors.nomorHp = 'Nomor HP aktif wajib diisi.';
-    
-    if (!formData.nomorKtp.trim()) newErrors.nomorKtp = 'NIK KTP wajib diisi.';
-    if (formData.nomorKtp.length < 16) newErrors.nomorKtp = 'NIK harus 16 digit.';
-    if (!formData.keperluan.trim()) newErrors.keperluan = 'Keperluan wajib diisi.';
-    if (!formData.tujuan.trim()) newErrors.tujuan = 'Nama pegawai wajib diisi.';
-    if (!formData.divisi.trim()) newErrors.divisi = 'Divisi wajib diisi.';
-
-    const cleanHpPJ = formData.nomorHpPJ.replace(/\+/g, '');
-    if (!formData.nomorHpPJ.trim() || cleanHpPJ === '62') newErrors.nomorHpPJ = 'Nomor WA pegawai wajib diisi.';
-    
-    // Foto dan K3 sekarang OPSIONAL, jadi tidak masuk validasi error mandatory
+    if (!formData.namaLengkap.trim()) newErrors.namaLengkap = 'Wajib diisi';
+    if (!formData.asalInstansi.trim()) newErrors.asalInstansi = 'Wajib diisi';
+    if (!formData.nomorHp.trim() || formData.nomorHp === '+62') newErrors.nomorHp = 'Wajib diisi';
+    if (!formData.nomorKtp.trim() || formData.nomorKtp.length < 16) newErrors.nomorKtp = 'NIK 16 Digit';
+    if (!formData.tujuan.trim()) newErrors.tujuan = 'Wajib diisi';
+    if (!formData.divisi.trim()) newErrors.divisi = 'Wajib diisi';
+    if (!formData.nomorHpPJ.trim() || formData.nomorHpPJ === '+62') newErrors.nomorHpPJ = 'Wajib diisi';
+    if (!formData.keperluan.trim()) newErrors.keperluan = 'Wajib diisi';
     
     setErrors(newErrors);
-    
-    const errorCount = Object.keys(newErrors).length;
-    if (errorCount > 0) {
-      alert("Pendaftaran gagal. Mohon lengkapi semua kolom.");
-    }
-    
-    return errorCount === 0;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit({
-        ...formData,
-        penanggungJawab: formData.tujuan,
-        catatan: ''
-      });
+      onSubmit({ ...formData, penanggungJawab: formData.tujuan });
+    } else {
+      alert("Mohon lengkapi formulir pendaftaran.");
     }
   };
 
-  const labelClasses = "text-[10px] md:text-[11px] font-[900] text-slate-900 uppercase tracking-widest flex items-center gap-2 mb-2";
-  const inputClasses = (error?: string) => `w-full px-5 md:px-6 py-3.5 md:py-4 rounded-xl md:rounded-2xl border-2 transition-all outline-none text-sm font-bold bg-slate-50/50 ${error ? 'border-brand-red/40 focus:border-brand-red' : 'border-slate-200 focus:border-brand-navy focus:bg-white'}`;
+  const labelClasses = "text-[11px] font-[800] text-brand-navy uppercase tracking-widest flex items-center gap-2 mb-3 px-1";
+  const inputClasses = (error?: string) => `w-full px-6 py-4.5 rounded-xl border transition-all outline-none text-[14px] font-bold bg-[#f8fafc] ${error ? 'border-brand-red focus:border-brand-red' : 'border-slate-100 focus:border-brand-navy focus:bg-white focus:shadow-sm'}`;
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 md:p-12 space-y-8 md:space-y-12">
-      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center justify-between border-b border-slate-100 pb-6 md:pb-8">
-        <div className="flex p-1 bg-slate-100 rounded-xl md:rounded-2xl border border-slate-200 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setFormData({...formData, visitType: VisitType.UMUM})}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${formData.visitType === VisitType.UMUM ? 'bg-white text-brand-navy shadow-sm ring-1 ring-slate-200' : 'text-slate-400'}`}
-          >
-            <User size={14} /> Umum
-          </button>
-          <button
-            type="button"
-            onClick={() => setFormData({...formData, visitType: VisitType.VENDOR})}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${formData.visitType === VisitType.VENDOR ? 'bg-white text-brand-red shadow-sm ring-1 ring-slate-200' : 'text-slate-400'}`}
-          >
-            <HardHat size={14} /> Vendor
-          </button>
+    <div className="bg-white rounded-[4rem] overflow-hidden">
+      {/* HEADER CARD */}
+      <div className="bg-brand-navy p-10 md:p-14 text-white flex items-center gap-6 rounded-b-[4rem] md:rounded-b-[5rem]">
+        <div className="bg-white/10 p-5 rounded-2xl border border-white/20">
+          <ClipboardList size={36} />
         </div>
-
-        <div className="flex p-1 bg-slate-100 rounded-xl md:rounded-2xl border border-slate-200 w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setFormData({...formData, isGroup: false})}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${!formData.isGroup ? 'bg-brand-navy text-white shadow-lg' : 'text-slate-400'}`}
-          >
-            <User size={14} /> Individu
-          </button>
-          <button
-            type="button"
-            onClick={() => setFormData({...formData, isGroup: true})}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${formData.isGroup ? 'bg-brand-navy text-white shadow-lg' : 'text-slate-400'}`}
-          >
-            <Users size={14} /> Rombongan
-          </button>
+        <div>
+          <h2 className="text-3xl md:text-4xl font-[900] italic tracking-tighter uppercase leading-none">
+            BUKU TAMU DIGITAL
+          </h2>
+          <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.3em] opacity-40 mt-2">
+            LOBBY KALTIM KARIANGAU TERMINAL
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 md:gap-y-10">
-        <div className="col-span-full flex items-center gap-4">
-            <h3 className="text-[18px] font-black text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap">
-                {formData.isGroup ? 'Identitas PJ Kelompok' : 'Identitas Tamu'}
-            </h3>
-            <div className="h-px bg-slate-200 w-full"></div>
+      <form onSubmit={handleSubmit} className="p-8 md:p-16 space-y-16">
+        
+        {/* TABS - KATEGORI & TIPE (Sesuai Gambar) */}
+        <div className="flex flex-col sm:flex-row gap-8 items-center justify-between">
+          <div className="flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 w-full sm:w-auto shadow-sm">
+            <button
+              type="button"
+              onClick={() => setFormData({...formData, visitType: VisitType.UMUM})}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-10 py-3.5 rounded-xl text-[10px] font-[900] uppercase tracking-widest transition-all ${formData.visitType === VisitType.UMUM ? 'bg-brand-navy text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <User size={14} /> TAMU UMUM
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({...formData, visitType: VisitType.VENDOR})}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-10 py-3.5 rounded-xl text-[10px] font-[900] uppercase tracking-widest transition-all ${formData.visitType === VisitType.VENDOR ? 'bg-brand-navy text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <Briefcase size={14} /> VENDOR
+            </button>
+          </div>
+
+          <div className="flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 w-full sm:w-auto shadow-sm">
+            <button
+              type="button"
+              onClick={() => setFormData({...formData, isGroup: false})}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-10 py-3.5 rounded-xl text-[10px] font-[900] uppercase tracking-widest transition-all ${!formData.isGroup ? 'bg-brand-navy text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <User size={14} /> INDIVIDU
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({...formData, isGroup: true})}
+              className={`flex-1 sm:flex-none flex items-center justify-center gap-3 px-10 py-3.5 rounded-xl text-[10px] font-[900] uppercase tracking-widest transition-all ${formData.isGroup ? 'bg-brand-navy text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <Users size={14} /> ROMBONGAN
+            </button>
+          </div>
         </div>
 
-        <div className="col-span-full grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-          <CameraCapture label="FOTO WAJAH" onCapture={(img) => setFormData({...formData, fotoTamu: img})} />
-          <CameraCapture label="FOTO KTP/ID" onCapture={(img) => setFormData({...formData, fotoKTP: img})} />
+        {/* SECTION 1: IDENTITAS TAMU */}
+        <div className="space-y-12">
+          <div className="flex items-center gap-6">
+            <h3 className="text-[15px] font-[900] text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap italic">IDENTITAS TAMU</h3>
+            <div className="h-[1px] bg-slate-100 w-full"></div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-12">
+            <CameraCapture label="FOTO WAJAH" onCapture={(img) => setFormData({...formData, fotoTamu: img})} />
+            <CameraCapture label="FOTO KTP / ID CARD" onCapture={(img) => setFormData({...formData, fotoKTP: img})} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+            <div className="space-y-1">
+              <label className={labelClasses}><User size={14} /> NAMA LENGKAP TAMU</label>
+              <input type="text" className={inputClasses(errors.namaLengkap)} placeholder="Nama sesuai KTP" value={formData.namaLengkap} onChange={(e) => setFormData({ ...formData, namaLengkap: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClasses}><Building size={14} /> ASAL INSTANSI / PERUSAHAAN</label>
+              <input type="text" className={inputClasses(errors.asalInstansi)} placeholder="Nama perusahaan asal" value={formData.asalInstansi} onChange={(e) => setFormData({ ...formData, asalInstansi: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClasses}><Phone size={14} /> NOMOR AKTIF</label>
+              <input type="text" className={inputClasses(errors.nomorHp)} placeholder="+628..." value={formData.nomorHp} onChange={(e) => handlePhoneChange('nomorHp', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClasses}><CreditCard size={14} /> NIK KTP</label>
+              <input type="text" maxLength={16} className={inputClasses(errors.nomorKtp)} placeholder="16 digit NIK" value={formData.nomorKtp} onChange={(e) => setFormData({ ...formData, nomorKtp: e.target.value.replace(/[^0-9]/g, '') })} />
+            </div>
+          </div>
         </div>
 
-        <div className="space-y-1">
-          <label className={labelClasses}><User size={14} className="text-brand-navy" /> NAMA LENGKAP </label>
-          <input type="text" className={inputClasses(errors.namaLengkap)} placeholder="Sesuai KTP" value={formData.namaLengkap} onChange={(e) => setFormData({ ...formData, namaLengkap: e.target.value })} />
-          {errors.namaLengkap && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.namaLengkap}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className={labelClasses}><Building size={14} className="text-brand-navy" /> ASAL INSTANSI / PERUSAHAAN </label>
-          <input type="text" className={inputClasses(errors.asalInstansi)} placeholder="Nama perusahaan atau instansi" value={formData.asalInstansi} onChange={(e) => setFormData({ ...formData, asalInstansi: e.target.value })} />
-          {errors.asalInstansi && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.asalInstansi}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className={labelClasses}><Phone size={14} className="text-brand-navy" /> NOMOR HP AKTIF </label>
-          <input 
-            type="text" 
-            className={inputClasses(errors.nomorHp)} 
-            placeholder="+62" 
-            value={formData.nomorHp}
-            onFocus={() => handlePhoneFocus('nomorHp')}
-            onBlur={() => handlePhoneBlur('nomorHp')}
-            onChange={(e) => handlePhoneChange('nomorHp', e.target.value)} 
-          />
-          {errors.nomorHp && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.nomorHp}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className={labelClasses}><CreditCard size={14} className="text-brand-navy" /> NIK </label>
-          <input type="text" maxLength={16} className={inputClasses(errors.nomorKtp)} placeholder="16 Digit NIK" value={formData.nomorKtp} onChange={(e) => setFormData({ ...formData, nomorKtp: e.target.value.replace(/[^0-9]/g, '') })} />
-          {errors.nomorKtp && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.nomorKtp}</p>}
-        </div>
-
+        {/* DAFTAR ANGGOTA ROMBONGAN (Sesuai Gambar) */}
         {formData.isGroup && (
-          <div className="col-span-full bg-slate-50 p-6 md:p-8 rounded-3xl md:rounded-[2rem] border-2 border-slate-200 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                <div className="flex items-center gap-3">
-                    <Users size={18} className="text-brand-navy" />
-                    <h4 className="text-[10px] md:text-[11px] font-black uppercase tracking-widest text-brand-navy">Input Nama Anggota</h4>
-                </div>
-                <span className="text-[9px] font-bold text-slate-400">Total: {formData.groupMembers.length}</span>
+          <div className="bg-[#f1f5f9] p-10 rounded-[2.5rem] border border-slate-200 space-y-8 animate-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+              <div className="flex items-center gap-4">
+                 <Users size={22} className="text-brand-navy" />
+                 <h4 className="text-[13px] font-black uppercase tracking-widest text-brand-navy">DAFTAR ANGGOTA ROMBONGAN</h4>
+              </div>
+              <div className="bg-white text-brand-navy border border-slate-200 px-5 py-2 rounded-full text-[10px] font-black shadow-sm">
+                 {formData.groupMembers.length} Peserta
+              </div>
             </div>
-            <div className="flex gap-2">
-                <input 
-                    type="text" 
-                    className="flex-grow px-5 py-3 rounded-xl border-2 border-slate-300 outline-none focus:border-brand-navy text-sm font-bold bg-white" 
-                    placeholder="Nama anggota..." 
-                    value={formData.currentMember}
-                    onChange={(e) => setFormData({...formData, currentMember: e.target.value})}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMember())}
-                />
-                <button type="button" onClick={addMember} className="bg-brand-navy text-white px-4 md:px-8 rounded-xl hover:bg-brand-red transition-all shadow-lg font-black text-[9px] uppercase tracking-widest">
-                    ADD
-                </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <input 
+                type="text" 
+                className="flex-grow px-7 py-5 rounded-2xl border border-slate-100 outline-none focus:border-brand-navy font-bold text-sm bg-white shadow-sm" 
+                placeholder="Ketik nama anggota..." 
+                value={formData.currentMember} 
+                onChange={(e) => setFormData({...formData, currentMember: e.target.value})} 
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMember())} 
+              />
+              <button 
+                type="button" 
+                onClick={addMember} 
+                className="bg-brand-navy text-white px-12 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-brand-dark transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                TAMBAH
+              </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-1 scrollbar-hide">
+            {formData.groupMembers.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
                 {formData.groupMembers.map((name, idx) => (
-                    <div key={idx} className="flex justify-between items-center bg-white px-4 py-2 rounded-lg border border-slate-200 group">
-                        <span className="text-[10px] font-bold text-slate-700 truncate mr-2">{idx + 1}. {name}</span>
-                        <button type="button" onClick={() => removeMember(idx)} className="text-slate-300 hover:text-brand-red">
-                            <Trash2 size={12} />
-                        </button>
-                    </div>
+                  <div key={idx} className="flex justify-between items-center bg-white px-6 py-4 rounded-2xl border border-slate-50 shadow-sm group/item hover:border-brand-navy transition-all">
+                    <span className="text-[13px] font-bold text-slate-700">{idx + 1}. {name}</span>
+                    <button type="button" onClick={() => removeMember(idx)} className="text-slate-300 hover:text-brand-red transition-all"><Trash2 size={18} /></button>
+                  </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SECTION 2: KONFIRMASI PEGAWAI */}
+        <div className="space-y-12">
+          <div className="flex items-center gap-6">
+            <h3 className="text-[15px] font-[900] text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap italic">KONFIRMASI PEGAWAI</h3>
+            <div className="h-[1px] bg-slate-100 w-full"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+            <div className="space-y-1">
+              <label className={labelClasses}><Target size={14} /> PEGAWAI YANG DITUJU</label>
+              <input type="text" className={inputClasses(errors.tujuan)} placeholder="Input nama pegawai KKT" value={formData.tujuan} onChange={(e) => setFormData({ ...formData, tujuan: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClasses}><Briefcase size={14} /> DIVISI / UNIT KERJA</label>
+              <input type="text" className={inputClasses(errors.divisi)} placeholder="Input divisi pegawai" value={formData.divisi} onChange={(e) => setFormData({ ...formData, divisi: e.target.value })} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClasses}><MessageSquare size={14} /> WHATSAPP PEGAWAI</label>
+              <input type="text" className={inputClasses(errors.nomorHpPJ)} placeholder="+628..." value={formData.nomorHpPJ} onChange={(e) => handlePhoneChange('nomorHpPJ', e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className={labelClasses}><Info size={14} /> KEPERLUAN</label>
+              <input type="text" className={inputClasses(errors.keperluan)} placeholder="Contoh: Meeting Proyek, Audit, dsb." value={formData.keperluan} onChange={(e) => setFormData({ ...formData, keperluan: e.target.value })} />
+            </div>
+          </div>
+        </div>
+
+        {/* VENDOR DETAIL AREA */}
+        {formData.visitType === VisitType.VENDOR && (
+          <div className="space-y-12 animate-in fade-in duration-500">
+            <div className="flex items-center gap-6">
+              <h3 className="text-[15px] font-[900] text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap italic">DETAIL PEKERJAAN</h3>
+              <div className="h-[1px] bg-slate-100 w-full"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+              <div className="space-y-1">
+                <label className={labelClasses}><MapPin size={14} className="text-brand-red" /> LOKASI PENGERJAAN</label>
+                <input type="text" className={inputClasses()} placeholder="Contoh: Site Dermaga, Gudang" value={formData.lokasiPekerjaan} onChange={(e) => setFormData({ ...formData, lokasiPekerjaan: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <label className={labelClasses}><Settings size={14} className="text-brand-red" /> JENIS PEKERJAAN</label>
+                <input type="text" className={inputClasses()} placeholder="Contoh: Maintenance, Sipil" value={formData.deskripsiPekerjaan} onChange={(e) => setFormData({ ...formData, deskripsiPekerjaan: e.target.value })} />
+              </div>
             </div>
           </div>
         )}
 
-        <div className="col-span-full flex items-center gap-4 mt-6 md:mt-8">
-            <h3 className="text-[18px] font-black text-brand-navy uppercase tracking-[0.3em] whitespace-nowrap">KONFIRMASI PEGAWAI</h3>
-            <div className="h-px bg-slate-200 w-full"></div>
-        </div>
+        {/* UPLOAD AREA */}
+        <div className="space-y-8">
+          <div className="flex items-center gap-4 mb-4">
+             {formData.visitType === VisitType.UMUM ? (
+               <label className={labelClasses}><ClipboardList size={14} /> SURAT PENGANTAR / UNDANGAN</label>
+             ) : (
+               <label className={labelClasses}><ClipboardList size={14} /> DOKUMEN K3 / IZIN KERJA</label>
+             )}
+          </div>
 
-        <div className="space-y-1">
-          <label className={labelClasses}><Target size={14} className="text-brand-navy" /> PEGAWAI YANG DITUJU </label>
-          <input type="text" className={inputClasses(errors.tujuan)} placeholder="Nama pegawai KKT" value={formData.tujuan} onChange={(e) => setFormData({ ...formData, tujuan: e.target.value })} />
-          {errors.tujuan && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.tujuan}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className={labelClasses}><Briefcase size={14} className="text-brand-navy" /> DIVISI / UNIT KERJA </label>
-          <input type="text" className={inputClasses(errors.divisi)} placeholder="Unit kerja" value={formData.divisi} onChange={(e) => setFormData({ ...formData, divisi: e.target.value })} />
-          {errors.divisi && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.divisi}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className={labelClasses}><MessageSquare size={14} className="text-brand-green" /> NOMOR WHATSAPP PEGAWAI </label>
-          <input 
-            type="text" 
-            className={inputClasses(errors.nomorHpPJ)} 
-            placeholder="+62" 
-            value={formData.nomorHpPJ}
-            onFocus={() => handlePhoneFocus('nomorHpPJ')}
-            onBlur={() => handlePhoneBlur('nomorHpPJ')}
-            onChange={(e) => handlePhoneChange('nomorHpPJ', e.target.value)}
-          />
-          {errors.nomorHpPJ && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.nomorHpPJ}</p>}
-        </div>
-
-        <div className="space-y-1">
-          <label className={labelClasses}><Info size={14} className="text-brand-navy" /> KEPERLUAN KUNJUNGAN </label>
-          <input type="text" className={inputClasses(errors.keperluan)} placeholder="Maksud kedatangan" value={formData.keperluan} onChange={(e) => setFormData({ ...formData, keperluan: e.target.value })} />
-          {errors.keperluan && <p className="text-[9px] text-brand-red font-bold mt-1 px-1">{errors.keperluan}</p>}
-        </div>
-
-        {formData.visitType === VisitType.VENDOR && (
-          <>
-            <div className="col-span-full border-t border-slate-100 pt-8 mt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-1">
-                <label className={labelClasses}><MapPin size={14} className="text-brand-red" /> LOKASI PEKERJAAN</label>
-                <input type="text" className={inputClasses()} placeholder="Area/Site" value={formData.lokasiPekerjaan} onChange={(e) => setFormData({ ...formData, lokasiPekerjaan: e.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <label className={labelClasses}><Settings size={14} className="text-brand-red" /> DESKRIPSI PEKERJAAN</label>
-                <input type="text" className={inputClasses()} placeholder="Jenis pekerjaan" value={formData.deskripsiPekerjaan} onChange={(e) => setFormData({ ...formData, deskripsiPekerjaan: e.target.value })} />
-              </div>
+          <div 
+            onClick={() => formData.visitType === VisitType.UMUM ? inviteInputRef.current?.click() : k3InputRef.current?.click()}
+            className={`group w-full min-h-[350px] border-2 border-dashed rounded-[3.5rem] flex flex-col items-center justify-center gap-6 cursor-pointer transition-all ${
+              (formData.visitType === VisitType.UMUM ? formData.suratUndangan : formData.k3Pdf) 
+              ? 'border-brand-green bg-emerald-50/20' 
+              : 'border-slate-200 bg-white hover:border-brand-navy hover:bg-slate-50'
+            }`}
+          >
+            <div className={`p-8 rounded-full transition-all ${
+                (formData.visitType === VisitType.UMUM ? formData.suratUndangan : formData.k3Pdf)
+                ? 'bg-brand-green text-white shadow-xl shadow-emerald-200'
+                : 'bg-slate-50 text-slate-300 group-hover:bg-white group-hover:text-brand-navy'
+            }`}>
+              <Upload size={48} />
             </div>
-            <div className="col-span-full space-y-1">
-              <label className={labelClasses}><FileText size={14} className="text-brand-red" /> DOKUMEN K3 / IZIN KERJA</label>
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`w-full border-4 border-dashed rounded-3xl md:rounded-[2rem] p-6 md:p-10 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all ${formData.k3Pdf ? 'border-brand-green bg-brand-green/5' : 'border-slate-200 hover:border-brand-navy bg-slate-50'}`}
-              >
-                <div className={`p-4 md:p-6 rounded-full ${formData.k3Pdf ? 'bg-brand-green/20 text-brand-green' : 'bg-white text-slate-300'}`}>
-                    <Upload size={32} className="md:w-10 md:h-10" />
-                </div>
-                <div className="text-center">
-                    <span className="block text-[11px] font-black uppercase tracking-widest text-slate-600">
-                        {formData.k3Pdf ? 'DOKUMEN TERLAMPIR' : 'UNGGAH DOKUMEN K3'}
-                    </span>
-                    <div className="flex items-center justify-center gap-2 mt-2 text-[9px] text-slate-400 font-bold">
-                        <AlertCircle size={10} /> PDF/JPG/PNG (Maksimal 5MB)
-                    </div>
-                </div>
-                <input type="file" ref={fileInputRef} className="hidden" accept="application/pdf,image/*" onChange={handleFileUpload} />
-              </div>
+            <div className="text-center px-6">
+              <h4 className="text-[18px] font-black uppercase tracking-widest text-slate-800 leading-none">
+                {(formData.visitType === VisitType.UMUM ? formData.suratUndangan : formData.k3Pdf) 
+                   ? 'DOKUMEN TERUNGGAH' 
+                   : (formData.visitType === VisitType.UMUM ? 'UNGGAH SURAT' : 'UNGGAH DOKUMEN K3')}
+              </h4>
+              <p className="text-[10px] font-black text-slate-400 mt-4 flex items-center justify-center gap-2">
+                 <Info size={14} /> PDF / JPG / PNG (MAKSIMAL 5MB)
+              </p>
             </div>
-          </>
-        )}
-      </div>
+            
+            <input 
+              type="file" 
+              ref={formData.visitType === VisitType.UMUM ? inviteInputRef : k3InputRef} 
+              className="hidden" 
+              accept="application/pdf,image/*" 
+              onChange={(e) => handleFileUpload(e, formData.visitType === VisitType.UMUM ? 'suratUndangan' : 'k3Pdf')} 
+            />
+          </div>
+        </div>
 
-      <button
-        type="submit"
-        className="w-full btn-brand-gradient text-white py-6 md:py-8 rounded-2xl md:rounded-[2.5rem] font-black text-[12px] md:text-[14px] uppercase tracking-[0.3em] transition-all shadow-2xl active:scale-[0.98] flex items-center justify-center gap-4 md:gap-6"
-      >
-        DAFTARKAN KEDATANGAN <ChevronRight size={24} />
-      </button>
-    </form>
+        {/* SUBMIT BUTTON */}
+        <button
+          type="submit"
+          className="w-full bg-brand-navy hover:bg-brand-dark text-white py-9 rounded-[2.5rem] font-[900] text-[16px] uppercase tracking-[0.6em] transition-all shadow-[0_30px_60px_-15px_rgba(0,51,154,0.3)] active:scale-[0.98] flex items-center justify-center gap-6 mt-16 group"
+        >
+          DAFTARKAN KUNJUNGAN <ChevronRight size={32} className="group-hover:translate-x-3 transition-transform duration-300" />
+        </button>
+      </form>
+    </div>
   );
 };
 

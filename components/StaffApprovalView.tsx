@@ -10,7 +10,7 @@ interface StaffApprovalViewProps {
 const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }) => {
   const [note, setNote] = useState('');
   const [localGuest, setLocalGuest] = useState<GuestEntry | undefined>(guest);
-  const [showDoc, setShowDoc] = useState(false);
+  const [showDoc, setShowDoc] = useState<{url: string, title: string} | null>(null);
 
   useEffect(() => {
     if (!guest) {
@@ -46,8 +46,6 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
     );
   }
 
-  const isPdf = localGuest.k3Pdf?.startsWith('data:application/pdf');
-
   const handleActionClick = (status: GuestStatus) => {
     if (status === GuestStatus.DITOLAK && !note.trim()) {
       alert("Alasan penolakan wajib diisi!");
@@ -58,15 +56,15 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
 
   return (
     <div className="bg-white rounded-[3rem] shadow-2xl overflow-hidden max-w-3xl mx-auto border border-slate-200 animate-in fade-in slide-in-from-bottom-10 duration-700">
-      {showDoc && localGuest.k3Pdf && (
-        <div className="fixed inset-0 bg-brand-navy/95 backdrop-blur-xl z-[500] flex items-center justify-center p-6 md:p-10" onClick={() => setShowDoc(false)}>
+      {showDoc && (
+        <div className="fixed inset-0 bg-brand-navy/95 backdrop-blur-xl z-[500] flex items-center justify-center p-6 md:p-10" onClick={() => setShowDoc(null)}>
            <div className="relative w-full max-w-5xl h-full flex flex-col items-center" onClick={e => e.stopPropagation()}>
-              <button onClick={() => setShowDoc(false)} className="absolute -top-12 right-0 text-white hover:text-brand-red transition-all bg-white/10 p-3 rounded-full"><X size={24} /></button>
+              <button onClick={() => setShowDoc(null)} className="absolute -top-12 right-0 text-white hover:text-brand-red transition-all bg-white/10 p-3 rounded-full"><X size={24} /></button>
               <div className="bg-white w-full h-[80vh] rounded-3xl shadow-2xl overflow-hidden p-2">
-                 {isPdf ? (
-                   <iframe src={localGuest.k3Pdf} className="w-full h-full border-none rounded-2xl" />
+                 {showDoc.url.startsWith('data:application/pdf') ? (
+                   <iframe src={showDoc.url} className="w-full h-full border-none rounded-2xl" />
                  ) : (
-                   <img src={localGuest.k3Pdf} className="w-full h-full object-contain rounded-2xl" alt="K3 Document" />
+                   <img src={showDoc.url} className="w-full h-full object-contain rounded-2xl" alt={showDoc.title} />
                  )}
               </div>
            </div>
@@ -91,7 +89,7 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
                   <h3 className="text-3xl font-black text-brand-navy tracking-tight">{localGuest.namaLengkap}</h3>
                   <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-3">
                      <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${localGuest.visitType === VisitType.VENDOR ? 'bg-red-50 text-brand-red border border-red-100' : 'bg-blue-50 text-brand-navy border border-blue-100'}`}>
-                        {localGuest.visitType === VisitType.UMUM ? 'UMUM' : (localGuest.visitType as string === 'STANDARD' ? 'UMUM' : 'VENDOR')}
+                        {localGuest.visitType === VisitType.UMUM ? 'UMUM' : (String(localGuest.visitType) === 'STANDARD' ? 'UMUM' : 'VENDOR')}
                      </span>
                      {localGuest.isGroup && (
                         <span className="bg-emerald-50 text-brand-green border border-emerald-100 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
@@ -124,17 +122,31 @@ const StaffApprovalView: React.FC<StaffApprovalViewProps> = ({ guest, onAction }
             </div>
          </div>
 
-         {localGuest.visitType === VisitType.VENDOR && localGuest.k3Pdf && (
-           <div className="bg-brand-red/5 p-8 rounded-[2rem] border-2 border-brand-red/10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-5">
-                <FileText size={28} className="text-brand-red" />
-                <h4 className="text-[12px] font-black text-brand-red uppercase tracking-widest">Dokumen K3 / Izin Kerja</h4>
+         <div className="space-y-4">
+            {localGuest.suratUndangan && (
+               <div className="bg-blue-50 p-6 rounded-[2rem] border-2 border-blue-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <FileText size={24} className="text-brand-navy" />
+                    <h4 className="text-[11px] font-black text-brand-navy uppercase tracking-widest">Surat Undangan</h4>
+                  </div>
+                  <button onClick={() => setShowDoc({url: localGuest.suratUndangan!, title: 'Surat Undangan'})} className="bg-brand-navy text-white px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 shadow-lg w-full sm:w-auto justify-center">
+                    LIHAT SURAT <ExternalLink size={14} />
+                  </button>
+               </div>
+            )}
+
+            {localGuest.visitType === VisitType.VENDOR && localGuest.k3Pdf && (
+              <div className="bg-brand-red/5 p-6 rounded-[2rem] border-2 border-brand-red/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                 <div className="flex items-center gap-4">
+                   <FileText size={24} className="text-brand-red" />
+                   <h4 className="text-[11px] font-black text-brand-red uppercase tracking-widest">Dokumen K3 / Izin Kerja</h4>
+                 </div>
+                 <button onClick={() => setShowDoc({url: localGuest.k3Pdf!, title: 'Dokumen K3'})} className="bg-brand-red text-white px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 shadow-lg w-full sm:w-auto justify-center">
+                   LIHAT DOKUMEN <ExternalLink size={14} />
+                 </button>
               </div>
-              <button onClick={() => setShowDoc(true)} className="bg-brand-red text-white px-8 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg">
-                LIHAT DOKUMEN <ExternalLink size={14} />
-              </button>
-           </div>
-         )}
+            )}
+         </div>
 
          <div className="space-y-4">
             <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-2"><MessageSquare size={16} /> Pesan / Instruksi * (Wajib jika menolak)</label>

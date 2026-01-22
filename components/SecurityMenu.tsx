@@ -1,9 +1,9 @@
 import React from 'react';
-import { Plus, ListFilter } from 'lucide-react';
+import { Plus, ListFilter, QrCode } from 'lucide-react';
 
 interface SecurityMenuProps {
-  activeView: 'form' | 'list';
-  onSelect: (view: 'form' | 'list') => void;
+  activeView: 'form' | 'list' | 'qr';
+  onSelect: (view: 'form' | 'list' | 'qr') => void;
 }
 
 const SecurityMenu: React.FC<SecurityMenuProps> = ({ activeView, onSelect }) => {
@@ -40,6 +40,20 @@ const SecurityMenu: React.FC<SecurityMenuProps> = ({ activeView, onSelect }) => 
             <ListFilter size={20} strokeWidth={3} />
           </div>
           LOG BUKU TAMU
+        </button>
+
+        <button
+          onClick={() => onSelect('qr')}
+          className={`flex items-center gap-4 px-6 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all duration-300 group ${
+            activeView === 'qr' 
+            ? 'bg-brand-navy text-white shadow-xl shadow-brand-navy/20' 
+            : 'bg-white text-slate-500 border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+          }`}
+        >
+          <div className={`p-2 rounded-lg transition-colors ${activeView === 'qr' ? 'bg-white/10' : 'bg-slate-100 text-slate-400 group-hover:text-brand-navy'}`}>
+            <QrCode size={20} strokeWidth={3} />
+          </div>
+          QR PENDAFTARAN
         </button>
       </div>
     </div>

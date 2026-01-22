@@ -1,6 +1,6 @@
 {
-  "name": "SI-TAMU KKT",
-  "description": "Sistem Informasi Tamu Kaltim Kariangau Terminal - Sistem buku tamu digital profesional dengan integrasi WhatsApp.",
+  "name": "SecureGate",
+  "description": "SecureGate - Sistem Informasi Tamu Kaltim Kariangau Terminal. Profesional, Handal, dan Aman.",
   "requestFramePermissions": [
     "camera"
   ]

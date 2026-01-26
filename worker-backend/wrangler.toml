@@ -1,0 +1,11 @@
+name = "securegate-backend"
+main = "src/index.js"
+compatibility_date = "2026-01-26"
+
+[[kv_namespaces]]
+binding = "GUESTS_KV"
+id = "ISI_ID_GUESTS_KV"
+
+[[kv_namespaces]]
+binding = "USERS_KV"
+id = "ISI_ID_USERS_KV"

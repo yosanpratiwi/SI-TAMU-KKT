@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 
 const app = express();
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 const DB_FILE = './guests_db.json';
 const USERS_FILE = './users_db.json';
 

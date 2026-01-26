@@ -26,7 +26,7 @@ if (!fs.existsSync(USERS_FILE)) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(defaultUsers, null, 2));
 }
 
-const WHATSAPP_API_TOKEN = 'pdKcCTfD7zmXZyRvj3bv';
+const WHATSAPP_API_TOKEN = '-';
 
 const formatPhoneForFonnte = (phone) => {
   if (!phone) return '';

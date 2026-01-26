@@ -4,8 +4,8 @@ compatibility_date = "2026-01-26"
 
 [[kv_namespaces]]
 binding = "GUESTS_KV"
-id = "ISI_ID_GUESTS_KV"
+id = "7ad4e6de6aff435f9d249e1ad6da0ba7"
 
 [[kv_namespaces]]
 binding = "USERS_KV"
-id = "ISI_ID_USERS_KV"
+id = "89578ae285d24c7b8b1ff734a173aa14"

@@ -1,0 +1,5 @@
+{
+  "name": "securegate-backend-worker",
+  "private": true,
+  "type": "module"
+}

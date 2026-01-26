@@ -12,14 +12,17 @@ import NotificationCenter from './components/NotificationCenter';
 import { generateGuestMessage, getManualWALink } from './services/whatsapp';
 import { ArrowRight, UserCheck, AlertTriangle, MessageCircle, AlertCircle } from 'lucide-react';
 
-// DETEKSI ALAMAT API DINAMIS
+// DETEKSI ALAMAT API DINAMIS (versi Cloudflare Workers)
 const getApiUrl = () => {
   const host = window.location.hostname;
-  if (host === 'localhost' || host === '127.0.0.1') {
-    return 'http://localhost:3002/api';
+
+  // Lokal (dev)
+  if (host === "localhost" || host === "127.0.0.1") {
+    return "http://localhost:3002/api";
   }
-  // Jika diakses lewat HP / Internet, arahkan ke host yang sama tapi port backend 3002
-  return `http://${host}:3002/api`;
+
+  // Production (Netlify) -> Cloudflare Workers
+  return "https://securegate-backend.securegate2026-bukutamudigital.workers.dev/api";
 };
 
 const API_URL = getApiUrl();

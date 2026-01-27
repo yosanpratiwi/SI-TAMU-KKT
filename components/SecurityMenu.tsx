@@ -1,5 +1,5 @@
+
 import React from 'react';
-import { Plus, ListFilter, QrCode } from 'lucide-react';
 
 interface SecurityMenuProps {
   activeView: 'form' | 'list' | 'qr';
@@ -7,55 +7,42 @@ interface SecurityMenuProps {
 }
 
 const SecurityMenu: React.FC<SecurityMenuProps> = ({ activeView, onSelect }) => {
+  const getBtnClass = (view: string) => {
+    const isActive = activeView === view;
+    return `px-6 md:px-10 py-3 md:py-4 rounded-full font-[800] text-[10px] md:text-[11px] uppercase tracking-widest transition-all border-2 shrink-0 ${
+      isActive 
+      ? 'bg-[#00339a] text-white border-[#00339a] shadow-xl shadow-blue-900/30 -translate-y-[2px]' 
+      : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:text-slate-600'
+    }`;
+  };
+
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8 w-full max-w-sm border border-slate-50 animate-in slide-in-from-left-10 duration-500">
-      <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 px-2">
-        AKSES PETUGAS
-      </h3>
-      
-      <div className="flex flex-col gap-4">
-        <button
-          onClick={() => onSelect('form')}
-          className={`flex items-center gap-4 px-6 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all duration-300 group ${
-            activeView === 'form' 
-            ? 'bg-[#0f172a] text-white shadow-xl shadow-slate-200' 
-            : 'bg-white text-slate-500 border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <div className={`p-2 rounded-lg transition-colors ${activeView === 'form' ? 'bg-white/10' : 'bg-slate-100 text-slate-400 group-hover:text-brand-navy'}`}>
-            <Plus size={20} strokeWidth={3} />
-          </div>
-          REGISTRASI BARU
+    <div className="bg-white border-b border-slate-50">
+      <div className="max-w-full mx-auto px-4 md:px-12 flex flex-row gap-3 md:gap-5 py-5 md:py-8 items-center overflow-x-auto no-scrollbar scroll-smooth">
+        <button onClick={() => onSelect('list')} className={getBtnClass('list')}>
+          DASHBOARD PEMANTAUAN
         </button>
 
-        <button
-          onClick={() => onSelect('list')}
-          className={`flex items-center gap-4 px-6 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all duration-300 group ${
-            activeView === 'list' 
-            ? 'bg-[#0f172a] text-white shadow-xl shadow-slate-200' 
-            : 'bg-white text-slate-500 border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <div className={`p-2 rounded-lg transition-colors ${activeView === 'list' ? 'bg-white/10' : 'bg-slate-100 text-slate-400 group-hover:text-brand-navy'}`}>
-            <ListFilter size={20} strokeWidth={3} />
-          </div>
-          LOG BUKU TAMU
+        <button onClick={() => onSelect('form')} className={getBtnClass('form')}>
+          INPUT TAMU BARU
         </button>
 
-        <button
-          onClick={() => onSelect('qr')}
-          className={`flex items-center gap-4 px-6 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest transition-all duration-300 group ${
-            activeView === 'qr' 
-            ? 'bg-brand-navy text-white shadow-xl shadow-brand-navy/20' 
-            : 'bg-white text-slate-500 border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <div className={`p-2 rounded-lg transition-colors ${activeView === 'qr' ? 'bg-white/10' : 'bg-slate-100 text-slate-400 group-hover:text-brand-navy'}`}>
-            <QrCode size={20} strokeWidth={3} />
-          </div>
+        <button onClick={() => onSelect('qr')} className={getBtnClass('qr')}>
           QR PENDAFTARAN
         </button>
+        
+        {/* Decorative Spacer for PC */}
+        <div className="flex-grow hidden md:block"></div>
+        
+        <div className="hidden lg:block">
+          <p className="text-[10px] font-black text-slate-200 uppercase tracking-[0.2em]">PT KALTIM KARIANGAU TERMINAL</p>
+        </div>
       </div>
+      
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </div>
   );
 };
